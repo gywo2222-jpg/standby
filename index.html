@@ -25,15 +25,14 @@
   html, body { margin: 0; height: 100%; background: #000; color: #fff; overflow: hidden; font-family: var(--txt);
     -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
 
-  /* ── 페이지 넘기기(가로) / 위젯 넘기기(세로) ── */
+  /* ── 페이지(위젯 칸 / 큰 시계)와 칸 속 위젯: 평소엔 고정, 편집할 때만 바꿈 ── */
   #app { position: fixed; inset: 0; transition: filter 1.5s; }
   /* 야간 모드: 흑백으로 바꾼 뒤 빨간 막을 곱해서 씌움 → 흰색은 빨강, 검정은 그대로 */
   body.night #app { filter: grayscale(1) brightness(.8); }
   body.night::after { content: ""; position: fixed; inset: 0; z-index: 4; background: #ff1e0a; mix-blend-mode: multiply; pointer-events: none; }
-  #pager { position: absolute; inset: 0; display: flex; overflow-x: auto; overflow-y: hidden;
+  #pager { position: absolute; inset: 0; display: flex; overflow: hidden;
     scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior: none;
     transform: translate(var(--dx, 0px), var(--dy, 0px)); transition: transform 3s ease; }
-  body.editing #pager { overflow-x: hidden; }
   #pager::-webkit-scrollbar, .track::-webkit-scrollbar { display: none; }
   /* 폴드 커버 화면처럼 작은 화면에서도 위젯이 크게 보이도록 여백을 좁게 */
   .page { flex: 0 0 100%; height: 100%; scroll-snap-align: start; scroll-snap-stop: always; display: flex;
@@ -60,8 +59,9 @@
   }
 
   .stack { flex: 1 1 0; position: relative; min-width: 0; min-height: 0; }
-  .track { position: absolute; inset: 0; overflow-y: auto; overflow-x: hidden; scroll-snap-type: y mandatory;
+  .track { position: absolute; inset: 0; overflow-y: hidden; overflow-x: hidden; scroll-snap-type: y mandatory;
     scrollbar-width: none; overscroll-behavior: contain; border-radius: 7vmin; }
+  body.editing .track { overflow-y: auto; }
   #pageClock .track, #pageClock .w { border-radius: 0; }
   .w { height: 100%; scroll-snap-align: start; scroll-snap-stop: always; position: relative; overflow: hidden;
     border-radius: 7vmin; container-type: size; }
@@ -70,7 +70,7 @@
   #pageClock .dots { right: 2vmin; }
   .dots i { width: 1.1vmin; height: 1.1vmin; border-radius: 50%; background: var(--faint); }
   .dots i.on { background: #fff; }
-  .stack.show-dots .dots, body.chrome .dots { opacity: 1; }
+  .stack.show-dots .dots, body.editing .dots { opacity: 1; }
 
   /* 편집 모드에서 칸마다 보이는 위젯 고르기 버튼 */
   .edit-ov { position: absolute; inset: 0; z-index: 2; display: none; align-items: center; justify-content: center; gap: 10px;
@@ -200,12 +200,9 @@
   #gear { position: fixed; z-index: 5; right: max(2.5vmin, env(safe-area-inset-right)); top: max(2.5vmin, env(safe-area-inset-top));
     width: 44px; height: 44px; border-radius: 50%; border: 0; background: rgba(60,60,67,.7); color: #fff; display: grid; place-items: center;
     opacity: 0; pointer-events: none; transition: opacity .4s; cursor: pointer; }
-  #pageDots { position: fixed; z-index: 5; bottom: max(1.5vmin, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%);
-    display: flex; gap: 10px; padding: 6px 10px; opacity: 0; pointer-events: none; transition: opacity .4s; }
-  #pageDots i { width: 8px; height: 8px; border-radius: 50%; background: var(--faint); cursor: pointer; }
-  #pageDots i.on { background: #fff; }
-  body.chrome #gear, body.chrome #pageDots { opacity: 1; pointer-events: auto; }
-  body.editing #gear, body.editing #pageDots { display: none; }
+  body.chrome #gear { opacity: 1; pointer-events: auto; }
+  body.editing #gear { display: none; }
+  body.on-clock #splitL, body.on-clock #splitR { display: none; }
   #toast { position: fixed; z-index: 20; left: 50%; top: 6vmin; transform: translate(-50%, -20px); max-width: 90vw; padding: 10px 16px;
     border-radius: 12px; background: rgba(44,44,46,.95); font-size: 14px; opacity: 0; transition: .3s; pointer-events: none; text-align: center; }
   #toast.on { opacity: 1; transform: translate(-50%, 0); }
@@ -262,14 +259,13 @@
   </div>
 </div>
 
-<div id="pageDots"><i class="on"></i><i></i></div>
 <button id="gear" aria-label="설정">
   <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
     <path d="M4 6h9M19 6h1M4 12h3M13 12h7M4 18h11M21 18h-1"/><circle cx="16" cy="6" r="2.2"/><circle cx="10" cy="12" r="2.2"/><circle cx="18" cy="18" r="2.2"/>
   </svg>
 </button>
 <div id="editBar">
-  <button id="splitL"></button><button id="splitR"></button><button id="layoutReset">처음 배치</button><button id="editDone" class="done">완료</button>
+  <button id="pageSwitch"></button><button id="splitL"></button><button id="splitR"></button><button id="layoutReset">처음 배치</button><button id="editDone" class="done">완료</button>
 </div>
 <div id="toast"></div>
 
@@ -365,7 +361,8 @@
     faceGlow: () => `<div class="w face face-glow">${faceTop}<div class="fg-time" data-f="time"></div></div>`,
   };
   const WIDGETS = ['analog', 'digital', 'calendar', 'events', 'weather', 'map'];
-  const NAMES = { analog: '아날로그 시계', digital: '디지털 시계', calendar: '달력', events: '일정', weather: '날씨', map: '지도' };
+  const NAMES = { analog: '아날로그 시계', digital: '디지털 시계', calendar: '달력', events: '일정', weather: '날씨', map: '지도',
+    faceBig: '큰 숫자 시계', faceAnalog: '큰 아날로그 시계', faceGlow: '빛나는 숫자 시계' };
   const listOf = st => st.dataset.stack === 'clock' ? ['faceBig', 'faceAnalog', 'faceGlow'] : WIDGETS;
 
   // ── 칸(위젯 묶음) 만들기: 칸 안에서 위아래로 밀면 위젯이 바뀜 ──
@@ -384,9 +381,9 @@
     track.scrollTo({ top: ((i + n) % n) * track.clientHeight, behavior: 'smooth' });
   }
   stacks.forEach(st => {
-    const list = listOf(st), editable = st.dataset.stack !== 'clock';
+    const list = listOf(st);
     st.innerHTML = `<div class="track">${list.map(k => TPL[k]()).join('')}</div><div class="dots">${list.map(() => '<i></i>').join('')}</div>`
-      + (editable ? '<div class="edit-ov"><button class="up" aria-label="이전 위젯">▲</button><span class="name"></span><button class="down" aria-label="다음 위젯">▼</button></div>' : '');
+      + '<div class="edit-ov"><button class="up" aria-label="이전 위젯">▲</button><span class="name"></span><button class="down" aria-label="다음 위젯">▼</button></div>';
     st._i = Math.min(store.get('stack.' + st.dataset.stack, +st.dataset.default), list.length - 1);
     markStack(st);
     const track = $('.track', st);
@@ -399,10 +396,8 @@
       clearTimeout(t);
       t = setTimeout(() => { st.classList.remove('show-dots'); store.set('stack.' + st.dataset.stack, st._i); }, 1200);
     }, { passive: true });
-    if (editable) {
-      $('.up', st).addEventListener('click', () => stackGo(st, st._i - 1));
-      $('.down', st).addEventListener('click', () => stackGo(st, st._i + 1));
-    }
+    $('.up', st).addEventListener('click', () => stackGo(st, st._i - 1));
+    $('.down', st).addEventListener('click', () => stackGo(st, st._i + 1));
   });
   const hands = { sec: $$('.h-sec'), min: $$('.h-min'), hour: $$('.h-hour') };
 
@@ -459,7 +454,6 @@
   function setEditing(on) {
     document.body.classList.toggle('editing', on);
     if (on) {
-      pager.scrollTo({ left: 0 });
       closeSheet();
       toast('가운데 선을 끌어 크기를 바꾸고, ▲▼로 위젯을 고르세요');
     } else {
@@ -482,17 +476,18 @@
   });
   $('#editDone').addEventListener('click', () => setEditing(false));
 
+  // 보여줄 페이지(0 = 위젯 칸, 1 = 큰 시계)는 편집 화면의 버튼으로만 바꿈
   const pager = $('#pager');
-  pager.addEventListener('scroll', () => {
-    const p = Math.round(pager.scrollLeft / pager.clientWidth);
-    $$('#pageDots i').forEach((d, j) => d.classList.toggle('on', j === p));
-    store.set('page', p);
-  }, { passive: true });
-  $$('#pageDots i').forEach((d, j) => d.addEventListener('click', () => pager.scrollTo({ left: j * pager.clientWidth, behavior: 'smooth' })));
-  document.addEventListener('keydown', e => {
-    if (!$('#sheet').hidden || document.body.classList.contains('editing')) return;
-    if (e.key === 'ArrowRight') pager.scrollBy({ left: pager.clientWidth, behavior: 'smooth' });
-    if (e.key === 'ArrowLeft') pager.scrollBy({ left: -pager.clientWidth, behavior: 'smooth' });
+  let page = store.get('page', 0);
+  function showPage() {
+    pager.scrollLeft = page * pager.clientWidth;
+    document.body.classList.toggle('on-clock', page === 1);
+    $('#pageSwitch').textContent = page === 1 ? '위젯 칸 화면으로' : '큰 시계 화면으로';
+  }
+  $('#pageSwitch').addEventListener('click', () => {
+    page = 1 - page;
+    store.set('page', page);
+    showPage();
   });
 
   // ── 시계 ──
@@ -850,14 +845,14 @@
   let resizeT;
   window.addEventListener('resize', () => {
     clearTimeout(resizeT);
-    resizeT = setTimeout(() => { pager.scrollLeft = store.get('page', 0) * pager.clientWidth; }, 200);
+    resizeT = setTimeout(showPage, 200);
   });
 
   const cachedWx = store.get('wx', null);
   if (cachedWx && Date.now() - cachedWx.at < 3 * 3600e3) state.wx = cachedWx.data;
   applyLayout();
   renderCalendar(); renderEvents(); renderWeather(); renderPlace(); updateNight();
-  requestAnimationFrame(() => { pager.scrollLeft = store.get('page', 0) * pager.clientWidth; stacks.forEach(snapStack); renderMap(); });
+  requestAnimationFrame(() => { showPage(); stacks.forEach(snapStack); renderMap(); });
   requestAnimationFrame(frame);
   locate();
   setInterval(loadWeather, 15 * 60e3);
