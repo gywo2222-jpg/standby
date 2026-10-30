@@ -110,7 +110,7 @@
   .cal-next { font-size: 6cqmin; color: var(--dim); line-height: 1.4; overflow: hidden; }
   .cal-next b { display: block; color: #fff; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .cal-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 7.5cqmin; font-weight: 700; margin-bottom: 2cqmin; }
-  .cal-head b { color: var(--red); }
+  .cal-head b { color: #64d2ff; }
   .cal-head span { color: var(--dim); font-weight: 500; font-size: 6cqmin; }
   .cal-grid { flex: 1; display: grid; grid-template-columns: repeat(7, 1fr); grid-auto-rows: 1fr; align-items: center; justify-items: center;
     font-size: 6.2cqmin; font-weight: 600; }
@@ -138,13 +138,40 @@
   .ev-empty { font-size: 6.5cqmin; color: var(--dim); line-height: 1.5; }
 
   /* ── 날씨 (넓은 칸에서는 시간별 예보를 오른쪽에) ── */
+  /* 배경 = 날씨(wx-맑음/구름/안개/비/눈/뇌우) × 시간대(t-새벽/낮/해질녘/밤). 움직이지 않는 그림이라 배터리 부담 없음 */
   .w-weather { background: var(--card); transition: background 1s; }
-  .wx-day   { background: linear-gradient(180deg, #2a6fd6, #5fa3ea); }
-  .wx-cloud { background: linear-gradient(180deg, #4a5566, #7b8796); }
+  .w-weather::before { content: ""; position: absolute; inset: 0; pointer-events: none; }
+  .wx-clear.t-day   { background: linear-gradient(180deg, #2a6fd6, #5fa3ea); }
+  .wx-clear.t-dawn  { background: linear-gradient(180deg, #34407a, #b9809b 70%, #f0ac88); }
+  .wx-clear.t-dusk  { background: linear-gradient(180deg, #2c2a5e, #9c4c78 65%, #e8834a); }
+  .wx-clear.t-night { background: linear-gradient(180deg, #0b1430, #28355a); }
+  .wx-cloud.t-day   { background: linear-gradient(180deg, #4a5566, #7b8796); }
+  .wx-cloud.t-dawn, .wx-cloud.t-dusk { background: linear-gradient(180deg, #3b3d53, #85707d); }
+  .wx-cloud.t-night { background: linear-gradient(180deg, #161b26, #333a48); }
+  .wx-fog   { background: linear-gradient(180deg, #5b636d, #8a929b); }
+  .wx-fog.t-night { background: linear-gradient(180deg, #23272d, #454b52); }
   .wx-rain  { background: linear-gradient(180deg, #2d3a4d, #4f5f75); }
-  .wx-night { background: linear-gradient(180deg, #0b1430, #28355a); }
+  .wx-rain.t-night { background: linear-gradient(180deg, #0f1622, #26303f); }
+  .wx-snow  { background: linear-gradient(180deg, #52637b, #8d9db2); }
+  .wx-snow.t-night { background: linear-gradient(180deg, #1b2335, #445069); }
+  .wx-storm { background: linear-gradient(180deg, #17182a, #3a3352); }
+  /* 비·뇌우는 비스듬한 빗줄기, 눈은 눈송이, 맑은 밤은 별, 안개는 옅은 띠 */
+  .wx-rain::before, .wx-storm::before {
+    background: repeating-linear-gradient(105deg, transparent 0 18px, rgba(255,255,255,.14) 18px 19.5px);
+    -webkit-mask: repeating-linear-gradient(15deg, #000 0 14px, transparent 14px 34px);
+    mask: repeating-linear-gradient(15deg, #000 0 14px, transparent 14px 34px); }
+  .wx-snow::before {
+    background-image: radial-gradient(circle, rgba(255,255,255,.8) 0 1.8px, transparent 2.4px),
+                      radial-gradient(circle, rgba(255,255,255,.5) 0 1.2px, transparent 1.7px);
+    background-size: 41px 37px, 23px 29px; background-position: 0 0, 12px 9px; }
+  .wx-clear.t-night::before {
+    background-image: radial-gradient(circle, rgba(255,255,255,.85) 0 1.1px, transparent 1.6px),
+                      radial-gradient(circle, rgba(255,255,255,.45) 0 .8px, transparent 1.3px);
+    background-size: 97px 71px, 53px 61px; background-position: 13px 7px, 31px 29px;
+    -webkit-mask: linear-gradient(#000, transparent 75%); mask: linear-gradient(#000, transparent 75%); }
+  .wx-fog::before { background: repeating-linear-gradient(180deg, transparent 0, rgba(255,255,255,.07) 7%, transparent 14%); }
   /* 여백은 칸 크기 기준(cq 단위)이 되도록 안쪽 상자에 줌 */
-  .wx-in { height: 100%; display: flex; flex-direction: column; padding: 7cqmin; }
+  .wx-in { position: relative; height: 100%; display: flex; flex-direction: column; padding: 7cqmin; }
   .wx-top { display: flex; justify-content: space-between; align-items: flex-start; }
   .wx-place { font-size: 6.5cqmin; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60cqw; }
   .wx-arrow { font-size: 4.5cqmin; }
@@ -195,6 +222,9 @@
   .face-glow { background: radial-gradient(ellipse 80% 70% at 50% 115%, var(--g1, #2f8cff) 0%, transparent 70%); transition: background 2s; }
   .fg-time { font-size: min(56cqh, 30cqw); font-weight: 200; letter-spacing: -.03em; line-height: 1.1; font-variant-numeric: tabular-nums;
     background: linear-gradient(180deg, #fff 20%, var(--g2, #cfe6ff)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  /* 위젯 칸에 넣었을 때: 다른 위젯처럼 카드 배경 */
+  #pageWidgets .face-big { background: var(--card); }
+  #pageWidgets .face-glow { background-color: var(--card); }
 
   /* ── 터치하면 잠깐 보이는 버튼들 ── */
   #gear { position: fixed; z-index: 5; right: max(2.5vmin, env(safe-area-inset-right)); top: max(2.5vmin, env(safe-area-inset-top));
@@ -360,7 +390,8 @@
     faceAnalog: () => `<div class="w face face-analog">${faceTop}${analogSVG()}</div>`,
     faceGlow: () => `<div class="w face face-glow">${faceTop}<div class="fg-time" data-f="time"></div></div>`,
   };
-  const WIDGETS = ['analog', 'digital', 'calendar', 'events', 'weather', 'map'];
+  // 순서가 저장된 번호와 이어지므로 새 위젯은 끝에만 붙임
+  const WIDGETS = ['analog', 'digital', 'calendar', 'events', 'weather', 'map', 'faceBig', 'faceGlow'];
   const NAMES = { analog: '아날로그 시계', digital: '디지털 시계', calendar: '달력', events: '일정', weather: '날씨', map: '지도',
     faceBig: '큰 숫자 시계', faceAnalog: '큰 아날로그 시계', faceGlow: '빛나는 숫자 시계' };
   const listOf = st => st.dataset.stack === 'clock' ? ['faceBig', 'faceAnalog', 'faceGlow'] : WIDGETS;
@@ -586,7 +617,17 @@
     95: ['뇌우', '⛈️'], 96: ['우박 동반 뇌우', '⛈️'], 99: ['우박 동반 뇌우', '⛈️'],
   };
   const wx = (code, day) => { const w = WX[code] || ['-', '🌡️']; return { label: w[0], icon: (!day && w[2]) || w[1] }; };
-  const wxTheme = (code, day) => code >= 51 ? 'wx-rain' : !day ? 'wx-night' : code >= 3 ? 'wx-cloud' : 'wx-day';
+  const wxKind = code => code >= 95 ? 'storm' : (code >= 71 && code <= 77) || code === 85 || code === 86 ? 'snow'
+    : code >= 51 ? 'rain' : code >= 45 ? 'fog' : code >= 3 ? 'cloud' : 'clear';
+  // 시간대: 일출 앞뒤 45분 = 새벽, 일몰 1시간 전~30분 뒤 = 해질녘
+  function dayPhase(j) {
+    const min = s => +s.slice(11, 13) * 60 + +s.slice(14, 16);
+    const d = new Date(), now = d.getHours() * 60 + d.getMinutes();
+    const rise = min(j.daily.sunrise[0]), set = min(j.daily.sunset[0]);
+    if (Math.abs(now - rise) <= 45) return 'dawn';
+    if (now >= set - 60 && now <= set + 30) return 'dusk';
+    return now > rise && now < set ? 'day' : 'night';
+  }
 
   async function loadWeather() {
     const p = state.pos;
@@ -624,7 +665,7 @@
     const html = `<div class="wx-in"><div class="wx-top"><div><div class="wx-place">${esc(state.pos?.name || '')} <span class="wx-arrow">➤</span></div>
       <div class="wx-temp">${Math.round(c.temperature_2m)}°</div></div><div class="wx-ic">${now.icon}</div></div>
       <div class="wx-desc">${now.label}</div><div class="wx-hl">최고 ${hi}° · 최저 ${lo}°</div><div class="wx-hours">${hours}</div></div>`;
-    $$('[data-r="weather"]').forEach(el => { el.className = 'w w-weather ' + wxTheme(c.weather_code, day); el.innerHTML = html; });
+    $$('[data-r="weather"]').forEach(el => { el.className = `w w-weather wx-${wxKind(c.weather_code)} t-${dayPhase(j)}`; el.innerHTML = html; });
     fill('wxmini', `${now.icon} ${Math.round(c.temperature_2m)}°`);
     fill('sunrise', '일출 ' + fmtClock(j.daily.sunrise[0].slice(11, 16)));
     fill('sunset', '일몰 ' + fmtClock(j.daily.sunset[0].slice(11, 16)));
@@ -856,6 +897,7 @@
   requestAnimationFrame(frame);
   locate();
   setInterval(loadWeather, 15 * 60e3);
+  setInterval(() => { if (state.wx) renderWeather(); }, 5 * 60e3); // 인터넷이 끊겨도 시간대 배경은 바뀌게
   setInterval(() => locate(), 30 * 60e3);
   keepAwake();
 })();
