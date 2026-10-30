@@ -30,9 +30,10 @@
     scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior: none;
     transform: translate(var(--dx, 0px), var(--dy, 0px)); transition: transform 3s ease; }
   #pager::-webkit-scrollbar, .track::-webkit-scrollbar { display: none; }
-  .page { flex: 0 0 100%; height: 100%; scroll-snap-align: start; scroll-snap-stop: always; display: flex; gap: 4vmin;
-    padding: max(4vmin, env(safe-area-inset-top)) max(5vmin, env(safe-area-inset-right))
-             max(4vmin, env(safe-area-inset-bottom)) max(5vmin, env(safe-area-inset-left)); }
+  /* 폴드 커버 화면처럼 작은 화면에서도 위젯이 크게 보이도록 여백을 좁게 */
+  .page { flex: 0 0 100%; height: 100%; scroll-snap-align: start; scroll-snap-stop: always; display: flex; gap: 3.5vmin;
+    padding: max(2.5vmin, env(safe-area-inset-top)) max(4vmin, env(safe-area-inset-right))
+             max(2.5vmin, env(safe-area-inset-bottom)) max(4vmin, env(safe-area-inset-left)); }
   #pageClock { padding: 0; }
   .stack { flex: 1; position: relative; min-width: 0; min-height: 0; }
   .track { position: absolute; inset: 0; overflow-y: auto; overflow-x: hidden; scroll-snap-type: y mandatory;
