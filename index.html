@@ -7,6 +7,9 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <title>스탠바이</title>
 <style>
   :root {
@@ -14,6 +17,7 @@
     --faint: rgba(255,255,255,.18);
     --card: #111113;
     --red: #ff453a; --orange: #ff9f0a; --blue: #0a84ff;
+    --gap: 3.5vmin;
     --num: ui-rounded, "SF Pro Rounded", "SF Pro Display", -apple-system, "Segoe UI", Roboto, system-ui, sans-serif;
     --txt: -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Segoe UI", Roboto, system-ui, sans-serif;
   }
@@ -29,13 +33,33 @@
   #pager { position: absolute; inset: 0; display: flex; overflow-x: auto; overflow-y: hidden;
     scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior: none;
     transform: translate(var(--dx, 0px), var(--dy, 0px)); transition: transform 3s ease; }
+  body.editing #pager { overflow-x: hidden; }
   #pager::-webkit-scrollbar, .track::-webkit-scrollbar { display: none; }
   /* 폴드 커버 화면처럼 작은 화면에서도 위젯이 크게 보이도록 여백을 좁게 */
-  .page { flex: 0 0 100%; height: 100%; scroll-snap-align: start; scroll-snap-stop: always; display: flex; gap: 3.5vmin;
+  .page { flex: 0 0 100%; height: 100%; scroll-snap-align: start; scroll-snap-stop: always; display: flex;
     padding: max(2.5vmin, env(safe-area-inset-top)) max(4vmin, env(safe-area-inset-right))
              max(2.5vmin, env(safe-area-inset-bottom)) max(4vmin, env(safe-area-inset-left)); }
   #pageClock { padding: 0; }
-  .stack { flex: 1; position: relative; min-width: 0; min-height: 0; }
+
+  /* ── 칸 나누기: 왼쪽/오른쪽 열, 각 열은 위/아래 칸. 사이의 선(divider)을 끌어 크기 조절 ── */
+  .col { display: flex; flex-direction: column; flex: 1 1 0; min-width: 0; min-height: 0; }
+  .col.single > .hdiv, .col.single > .stack.sub { display: none; }
+  .vdiv, .hdiv { flex: 0 0 var(--gap); position: relative; z-index: 3; touch-action: none; }
+  body.editing .vdiv::before, body.editing .hdiv::before { content: ""; position: absolute; left: 50%; top: 50%;
+    transform: translate(-50%, -50%); border-radius: 4px; background: #fff; box-shadow: 0 0 0 3px rgba(0,0,0,.6); }
+  body.editing .vdiv::before { width: 7px; height: min(90px, 35%); }
+  body.editing .hdiv::before { width: min(90px, 35%); height: 7px; }
+  body.editing .vdiv::after, body.editing .hdiv::after { content: ""; position: absolute; inset: -16px; }
+  body.editing .vdiv::after { cursor: col-resize; }
+  body.editing .hdiv::after { cursor: row-resize; }
+  @media (orientation: portrait) {
+    #pageWidgets { flex-direction: column; }
+    #pageWidgets .col { flex-direction: row; }
+    body.editing .vdiv::before { width: min(90px, 35%); height: 7px; }
+    body.editing .hdiv::before { width: 7px; height: min(90px, 35%); }
+  }
+
+  .stack { flex: 1 1 0; position: relative; min-width: 0; min-height: 0; }
   .track { position: absolute; inset: 0; overflow-y: auto; overflow-x: hidden; scroll-snap-type: y mandatory;
     scrollbar-width: none; overscroll-behavior: contain; border-radius: 7vmin; }
   #pageClock .track, #pageClock .w { border-radius: 0; }
@@ -47,7 +71,20 @@
   .dots i { width: 1.1vmin; height: 1.1vmin; border-radius: 50%; background: var(--faint); }
   .dots i.on { background: #fff; }
   .stack.show-dots .dots, body.chrome .dots { opacity: 1; }
-  @media (orientation: portrait) { #pageWidgets { flex-direction: column; } }
+
+  /* 편집 모드에서 칸마다 보이는 위젯 고르기 버튼 */
+  .edit-ov { position: absolute; inset: 0; z-index: 2; display: none; align-items: center; justify-content: center; gap: 10px;
+    border-radius: 7vmin; border: 2px dashed rgba(255,255,255,.55); background: rgba(0,0,0,.4); pointer-events: none; }
+  body.editing .edit-ov { display: flex; }
+  .edit-ov .name { font-size: 15px; font-weight: 700; background: rgba(0,0,0,.6); padding: 6px 10px; border-radius: 8px; white-space: nowrap; }
+  .edit-ov button { pointer-events: auto; width: 38px; height: 38px; border-radius: 50%; border: 0; background: rgba(255,255,255,.9);
+    color: #000; font-size: 15px; cursor: pointer; flex: none; }
+  #editBar { position: fixed; z-index: 6; left: 50%; bottom: max(2vmin, env(safe-area-inset-bottom)); transform: translateX(-50%);
+    display: none; gap: 6px; padding: 6px; border-radius: 14px; background: rgba(44,44,46,.96); box-shadow: 0 4px 20px rgba(0,0,0,.5); }
+  body.editing #editBar { display: flex; }
+  #editBar button { font: 600 13px var(--txt); color: #fff; background: #3a3a3c; border: 0; border-radius: 9px; padding: 8px 10px;
+    white-space: nowrap; cursor: pointer; }
+  #editBar .done { background: var(--blue); }
 
   /* ── 아날로그 시계 ── */
   .w-analog { display: grid; place-items: center; background: var(--card); }
@@ -59,9 +96,19 @@
   .d-ampm { font-size: 7cqmin; color: var(--dim); font-weight: 600; min-height: 8cqmin; }
   .d-time { font-size: min(36cqh, 27cqw); font-weight: 600; letter-spacing: -.03em; line-height: 1; font-variant-numeric: tabular-nums; }
   .d-date { font-size: 7cqmin; color: var(--orange); margin-top: 3cqmin; font-weight: 600; }
+  @container (min-aspect-ratio: 3/2) { .d-time { font-size: min(50cqh, 27cqw); } }
 
-  /* ── 달력 ── */
-  .w-cal { background: var(--card); padding: 7cqmin 7cqmin 5cqmin; display: flex; flex-direction: column; font-family: var(--num); }
+  /* ── 달력 (넓은 칸에서는 왼쪽에 큰 날짜 + 다음 일정) ── */
+  .w-cal { background: var(--card); font-family: var(--num); }
+  .cal-in { height: 100%; display: flex; gap: 6cqw; padding: 7cqmin 7cqmin 5cqmin; }
+  .cal-side { display: none; }
+  .cal-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  @container (min-aspect-ratio: 3/2) {
+    .cal-side { display: flex; flex-direction: column; flex: 0 0 30%; min-width: 0; }
+  }
+  .cal-big { font-size: 30cqmin; font-weight: 500; line-height: 1; margin: 1cqmin 0 3cqmin; }
+  .cal-next { font-size: 6cqmin; color: var(--dim); line-height: 1.4; overflow: hidden; }
+  .cal-next b { display: block; color: #fff; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .cal-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 7.5cqmin; font-weight: 700; margin-bottom: 2cqmin; }
   .cal-head b { color: var(--red); }
   .cal-head span { color: var(--dim); font-weight: 500; font-size: 6cqmin; }
@@ -70,15 +117,18 @@
   .cal-grid span { position: relative; width: 10.5cqmin; height: 10.5cqmin; display: grid; place-items: center; border-radius: 50%; }
   .cal-grid .wd { color: var(--dim); font-size: 5cqmin; }
   .cal-grid .sun { color: #ff6961; }
+  .cal-grid .sat { color: #5ea8ff; }
   .cal-grid .today { background: var(--red); color: #fff; }
   .cal-grid .ev::after { content: ""; position: absolute; bottom: .4cqmin; width: 1.4cqmin; height: 1.4cqmin; border-radius: 50%; background: var(--orange); }
   .cal-grid .today.ev::after { background: #fff; }
 
   /* ── 일정 ── */
-  .w-events { background: var(--card); padding: 7cqmin; display: flex; flex-direction: column; }
+  .w-events { background: var(--card); }
+  .evw-in { height: 100%; display: flex; flex-direction: column; padding: 7cqmin; }
+  @container (min-aspect-ratio: 3/2) { .evw-in { flex-direction: row; gap: 7cqw; } .evw-date { flex: none; } .ev-list { flex: 1; } }
   .ev-wd { color: var(--red); font-size: 7cqmin; font-weight: 700; }
   .ev-day { font-family: var(--num); font-size: 24cqmin; font-weight: 500; line-height: 1; margin: 1cqmin 0 4cqmin; }
-  .ev-list { display: flex; flex-direction: column; gap: 3cqmin; overflow: hidden; min-height: 0; }
+  .ev-list { display: flex; flex-direction: column; gap: 3cqmin; overflow: hidden; min-height: 0; min-width: 0; }
   .ev-item { display: flex; gap: 3cqmin; }
   .ev-item.past { opacity: .45; }
   .ev-item i { width: 1.4cqmin; border-radius: 1cqmin; background: var(--orange); flex: none; }
@@ -87,12 +137,14 @@
   .ev-item small, .ev-empty small { font-size: 5.5cqmin; color: var(--dim); }
   .ev-empty { font-size: 6.5cqmin; color: var(--dim); line-height: 1.5; }
 
-  /* ── 날씨 ── */
-  .w-weather { background: var(--card); padding: 7cqmin; display: flex; flex-direction: column; transition: background 1s; }
+  /* ── 날씨 (넓은 칸에서는 시간별 예보를 오른쪽에) ── */
+  .w-weather { background: var(--card); transition: background 1s; }
   .wx-day   { background: linear-gradient(180deg, #2a6fd6, #5fa3ea); }
   .wx-cloud { background: linear-gradient(180deg, #4a5566, #7b8796); }
   .wx-rain  { background: linear-gradient(180deg, #2d3a4d, #4f5f75); }
   .wx-night { background: linear-gradient(180deg, #0b1430, #28355a); }
+  /* 여백은 칸 크기 기준(cq 단위)이 되도록 안쪽 상자에 줌 */
+  .wx-in { height: 100%; display: flex; flex-direction: column; padding: 7cqmin; }
   .wx-top { display: flex; justify-content: space-between; align-items: flex-start; }
   .wx-place { font-size: 6.5cqmin; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60cqw; }
   .wx-arrow { font-size: 4.5cqmin; }
@@ -106,6 +158,16 @@
   .hr span { font-size: 7cqmin; }
   .hr b { font-size: 5.6cqmin; font-weight: 600; }
   .wx-msg { margin: auto; font-size: 6cqmin; color: var(--dim); text-align: center; }
+  /* 납작한 칸: 시간별 예보를 오른쪽으로, 글씨는 높이 기준으로 키움 (위의 기본 규칙보다 뒤에 있어야 적용됨) */
+  @container (min-aspect-ratio: 3/2) {
+    .wx-in { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto auto 1fr; column-gap: 7cqw; padding: 7cqh 6cqw; }
+    .wx-top, .wx-desc, .wx-hl { grid-column: 1; }
+    .wx-top { gap: 4cqh; }
+    .wx-hours { grid-column: 2; grid-row: 1 / 5; align-self: center; margin: 0; }
+    .wx-place { font-size: 9cqh; } .wx-temp { font-size: 34cqh; } .wx-ic { font-size: 17cqh; }
+    .wx-desc { font-size: 8.5cqh; } .wx-hl { font-size: 7.5cqh; }
+    .hr small { font-size: 7cqh; } .hr span { font-size: 11cqh; } .hr b { font-size: 8.5cqh; }
+  }
 
   /* ── 지도(위치) ── */
   .w-map { background: #1b1d22; }
@@ -140,7 +202,8 @@
   #pageDots i { width: 8px; height: 8px; border-radius: 50%; background: var(--faint); cursor: pointer; }
   #pageDots i.on { background: #fff; }
   body.chrome #gear, body.chrome #pageDots { opacity: 1; pointer-events: auto; }
-  #toast { position: fixed; z-index: 20; left: 50%; bottom: 6vmin; transform: translate(-50%, 20px); max-width: 90vw; padding: 10px 16px;
+  body.editing #gear, body.editing #pageDots { display: none; }
+  #toast { position: fixed; z-index: 20; left: 50%; top: 6vmin; transform: translate(-50%, -20px); max-width: 90vw; padding: 10px 16px;
     border-radius: 12px; background: rgba(44,44,46,.95); font-size: 14px; opacity: 0; transition: .3s; pointer-events: none; text-align: center; }
   #toast.on { opacity: 1; transform: translate(-50%, 0); }
 
@@ -177,8 +240,17 @@
 <div id="app">
   <div id="pager">
     <section class="page" id="pageWidgets">
-      <div class="stack" data-stack="left" data-default="0"></div>
-      <div class="stack" data-stack="right" data-default="2"></div>
+      <div class="col" id="colL">
+        <div class="stack" data-stack="lt" data-default="1"></div>
+        <div class="hdiv" data-side="L"></div>
+        <div class="stack sub" data-stack="lb" data-default="4"></div>
+      </div>
+      <div class="vdiv"></div>
+      <div class="col" id="colR">
+        <div class="stack" data-stack="rt" data-default="2"></div>
+        <div class="hdiv" data-side="R"></div>
+        <div class="stack sub" data-stack="rb" data-default="3"></div>
+      </div>
     </section>
     <section class="page" id="pageClock">
       <div class="stack" data-stack="clock" data-default="0"></div>
@@ -192,6 +264,9 @@
     <path d="M4 6h9M19 6h1M4 12h3M13 12h7M4 18h11M21 18h-1"/><circle cx="16" cy="6" r="2.2"/><circle cx="10" cy="12" r="2.2"/><circle cx="18" cy="18" r="2.2"/>
   </svg>
 </button>
+<div id="editBar">
+  <button id="splitL"></button><button id="splitR"></button><button id="layoutReset">처음 배치</button><button id="editDone" class="done">완료</button>
+</div>
 <div id="toast"></div>
 
 <div id="sheet" hidden>
@@ -199,7 +274,9 @@
     <div class="sheet-head"><h2>설정</h2><button id="sheetClose" class="ghost">닫기</button></div>
 
     <div class="sec"><h3>화면</h3>
-      <div class="row"><span class="grow">전체화면 + 가로 고정</span><button id="btnFull" class="primary">전체화면</button></div>
+      <div class="row"><span class="grow">화면 배치 (칸 나누기 · 크기 조절 · 위젯 고르기)</span><button id="btnEdit" class="primary">편집하기</button></div>
+      <div class="row"><span class="grow">전체화면 + 가로 고정</span><button id="btnFull">전체화면</button></div>
+      <div class="row"><span class="grow" id="installText">홈 화면에 앱으로 추가</span><button id="btnInstall" hidden>추가하기</button></div>
       <div class="row"><span>화면 꺼짐 방지</span><small id="awakeState" class="muted grow" style="text-align:right"></small></div>
       <div class="row"><label class="grow" for="optH24">24시간 표기</label><input type="checkbox" id="optH24"></div>
       <div class="row"><label class="grow" for="optNight">야간 모드 (붉은 화면)</label>
@@ -269,7 +346,7 @@
     analog: () => `<div class="w w-analog">${analogSVG()}</div>`,
     digital: () => '<div class="w w-digital"><div class="d-ampm" data-f="ampm"></div><div class="d-time" data-f="time"></div><div class="d-date" data-f="date"></div></div>',
     calendar: () => '<div class="w w-cal" data-r="calendar" data-open="events"></div>',
-    events: () => '<div class="w w-events" data-open="events"><div class="ev-wd" data-f="wday"></div><div class="ev-day" data-f="dnum"></div><div class="ev-list" data-r="events"></div></div>',
+    events: () => '<div class="w w-events" data-open="events"><div class="evw-in"><div class="evw-date"><div class="ev-wd" data-f="wday"></div><div class="ev-day" data-f="dnum"></div></div><div class="ev-list" data-r="events"></div></div></div>',
     weather: () => '<div class="w w-weather" data-r="weather"></div>',
     map: () => `<div class="w w-map"><div class="map-tiles" data-r="map"></div><div class="map-pin"></div>
       <div class="map-label">➤ 현재 위치</div><div class="map-copy">© OpenStreetMap</div>
@@ -280,34 +357,124 @@
     faceGlow: () => `<div class="w face face-glow">${faceTop}<div class="fg-time" data-f="time"></div></div>`,
   };
   const WIDGETS = ['analog', 'digital', 'calendar', 'events', 'weather', 'map'];
-  const STACKS = { left: WIDGETS, right: WIDGETS, clock: ['faceBig', 'faceAnalog', 'faceGlow'] };
+  const NAMES = { analog: '아날로그 시계', digital: '디지털 시계', calendar: '달력', events: '일정', weather: '날씨', map: '지도' };
+  const listOf = st => st.dataset.stack === 'clock' ? ['faceBig', 'faceAnalog', 'faceGlow'] : WIDGETS;
 
-  // ── 위젯 묶음(세로로 넘기기) 만들기 ──
-  $$('.stack').forEach(st => {
-    const list = STACKS[st.dataset.stack];
-    st.innerHTML = `<div class="track">${list.map(k => TPL[k]()).join('')}</div><div class="dots">${list.map(() => '<i></i>').join('')}</div>`;
+  // ── 칸(위젯 묶음) 만들기: 칸 안에서 위아래로 밀면 위젯이 바뀜 ──
+  const stacks = $$('.stack');
+  function snapStack(st) {
+    const track = $('.track', st);
+    if (track.clientHeight) track.scrollTop = st._i * track.clientHeight;
+  }
+  function markStack(st) {
+    $$('.dots i', st).forEach((d, j) => d.classList.toggle('on', j === st._i));
+    const name = $('.edit-ov .name', st);
+    if (name) name.textContent = NAMES[listOf(st)[st._i]];
+  }
+  function stackGo(st, i) {
+    const n = listOf(st).length, track = $('.track', st);
+    track.scrollTo({ top: ((i + n) % n) * track.clientHeight, behavior: 'smooth' });
+  }
+  stacks.forEach(st => {
+    const list = listOf(st), editable = st.dataset.stack !== 'clock';
+    st.innerHTML = `<div class="track">${list.map(k => TPL[k]()).join('')}</div><div class="dots">${list.map(() => '<i></i>').join('')}</div>`
+      + (editable ? '<div class="edit-ov"><button class="up" aria-label="이전 위젯">▲</button><span class="name"></span><button class="down" aria-label="다음 위젯">▼</button></div>' : '');
+    st._i = Math.min(store.get('stack.' + st.dataset.stack, +st.dataset.default), list.length - 1);
+    markStack(st);
     const track = $('.track', st);
     let t;
     track.addEventListener('scroll', () => {
-      const i = Math.round(track.scrollTop / track.clientHeight);
-      $$('.dots i', st).forEach((d, j) => d.classList.toggle('on', j === i));
+      if (!track.clientHeight) return;
+      st._i = Math.round(track.scrollTop / track.clientHeight);
+      markStack(st);
       st.classList.add('show-dots');
       clearTimeout(t);
-      t = setTimeout(() => { st.classList.remove('show-dots'); store.set('stack.' + st.dataset.stack, i); }, 1200);
+      t = setTimeout(() => { st.classList.remove('show-dots'); store.set('stack.' + st.dataset.stack, st._i); }, 1200);
     }, { passive: true });
+    if (editable) {
+      $('.up', st).addEventListener('click', () => stackGo(st, st._i - 1));
+      $('.down', st).addEventListener('click', () => stackGo(st, st._i + 1));
+    }
   });
   const hands = { sec: $$('.h-sec'), min: $$('.h-min'), hour: $$('.h-hour') };
 
-  const pager = $('#pager');
-  function restoreLayout() {
-    $$('.stack').forEach(st => {
-      const track = $('.track', st);
-      const i = store.get('stack.' + st.dataset.stack, +st.dataset.default);
-      track.scrollTop = i * track.clientHeight;
-      $$('.dots i', st).forEach((d, j) => d.classList.toggle('on', j === i));
-    });
-    pager.scrollLeft = store.get('page', 0) * pager.clientWidth;
+  // 칸 크기가 바뀌면(선 끌기·화면 회전) 보던 위젯에 다시 맞추고 지도를 다시 그림
+  let mapT;
+  const ro = new ResizeObserver(entries => {
+    for (const en of entries) snapStack(en.target);
+    clearTimeout(mapT); mapT = setTimeout(renderMap, 250);
+  });
+  stacks.forEach(st => ro.observe(st));
+
+  // ── 화면 배치: x = 왼쪽 열 비율, L/R = 각 열의 위 칸 비율 (null이면 나누지 않음) ──
+  const LAYOUT_DEFAULT = { x: 0.5, L: 0.5, R: null };
+  let layout = Object.assign({}, LAYOUT_DEFAULT, store.get('layout', {}));
+  function applyLayout() {
+    $('#colL').style.flex = `${layout.x} 1 0`;
+    $('#colR').style.flex = `${1 - layout.x} 1 0`;
+    for (const side of ['L', 'R']) {
+      const col = $('#col' + side), y = layout[side];
+      col.classList.toggle('single', y == null);
+      col.children[0].style.flex = `${y ?? 1} 1 0`;
+      col.children[2].style.flex = `${1 - (y ?? 1)} 1 0`;
+      $('#split' + side).textContent = `${side === 'L' ? '왼쪽' : '오른쪽'} 칸 ${y == null ? '나누기' : '합치기'}`;
+    }
   }
+  // 선 끌기: 선 앞뒤 칸의 위치를 기준으로 비율 계산 (20%~80% 사이로 제한)
+  function draggable(div, set) {
+    div.addEventListener('pointerdown', e => {
+      if (!document.body.classList.contains('editing')) return;
+      e.preventDefault();
+      div.setPointerCapture(e.pointerId);
+      const row = getComputedStyle(div.parentElement).flexDirection.startsWith('row');
+      const a = div.previousElementSibling.getBoundingClientRect(), b = div.nextElementSibling.getBoundingClientRect();
+      const start = row ? a.left : a.top, end = row ? b.right : b.bottom;
+      const move = ev => {
+        const f = ((row ? ev.clientX : ev.clientY) - start) / (end - start);
+        set(Math.round(Math.min(0.8, Math.max(0.2, f)) * 100) / 100);
+        applyLayout();
+      };
+      const up = () => {
+        div.removeEventListener('pointermove', move);
+        div.removeEventListener('pointerup', up);
+        div.removeEventListener('pointercancel', up);
+        store.set('layout', layout);
+      };
+      div.addEventListener('pointermove', move);
+      div.addEventListener('pointerup', up);
+      div.addEventListener('pointercancel', up);
+    });
+  }
+  draggable($('.vdiv'), f => { layout.x = f; });
+  $$('.hdiv').forEach(d => draggable(d, f => { layout[d.dataset.side] = f; }));
+
+  function setEditing(on) {
+    document.body.classList.toggle('editing', on);
+    if (on) {
+      pager.scrollTo({ left: 0 });
+      closeSheet();
+      toast('가운데 선을 끌어 크기를 바꾸고, ▲▼로 위젯을 고르세요');
+    } else {
+      stacks.forEach(st => store.set('stack.' + st.dataset.stack, st._i));
+      store.set('layout', layout);
+    }
+  }
+  for (const side of ['L', 'R']) {
+    $('#split' + side).addEventListener('click', () => {
+      layout[side] = layout[side] == null ? 0.5 : null;
+      store.set('layout', layout);
+      applyLayout();
+    });
+  }
+  $('#layoutReset').addEventListener('click', () => {
+    layout = { ...LAYOUT_DEFAULT };
+    store.set('layout', layout);
+    applyLayout();
+    stacks.forEach(st => { st._i = +st.dataset.default; store.set('stack.' + st.dataset.stack, st._i); markStack(st); snapStack(st); });
+  });
+  $('#editDone').addEventListener('click', () => setEditing(false));
+
+  const pager = $('#pager');
   pager.addEventListener('scroll', () => {
     const p = Math.round(pager.scrollLeft / pager.clientWidth);
     $$('#pageDots i').forEach((d, j) => d.classList.toggle('on', j === p));
@@ -315,7 +482,7 @@
   }, { passive: true });
   $$('#pageDots i').forEach((d, j) => d.addEventListener('click', () => pager.scrollTo({ left: j * pager.clientWidth, behavior: 'smooth' })));
   document.addEventListener('keydown', e => {
-    if (!$('#sheet').hidden) return;
+    if (!$('#sheet').hidden || document.body.classList.contains('editing')) return;
     if (e.key === 'ArrowRight') pager.scrollBy({ left: pager.clientWidth, behavior: 'smooth' });
     if (e.key === 'ArrowLeft') pager.scrollBy({ left: -pager.clientWidth, behavior: 'smooth' });
   });
@@ -328,7 +495,7 @@
     const [h, m] = hm.split(':').map(Number);
     return `${h < 12 ? '오전' : '오후'} ${h % 12 || 12}:${pad(m)}`;
   };
-  let lastSec = -1, lastMin = -1, lastDay = '';
+  let lastSec = -1, lastMin = -1;
   function frame() {
     const now = new Date();
     const s = now.getSeconds() + now.getMilliseconds() / 1000, m = now.getMinutes() + s / 60, h = now.getHours() % 12 + m / 60;
@@ -344,9 +511,8 @@
     fill('wday', `${WD[now.getDay()]}요일`);
     fill('dnum', String(now.getDate()));
     if (now.getMinutes() !== lastMin) { lastMin = now.getMinutes(); everyMinute(now); }
-    if (dayKey(now) !== lastDay) { lastDay = dayKey(now); renderCalendar(); }
   }
-  function everyMinute(now) { updateNight(now); renderEvents(); setGlow(now); drift(); }
+  function everyMinute(now) { updateNight(now); renderCalendar(); renderEvents(); setGlow(now); drift(); }
 
   // 화면 번인(잔상) 방지: 1분마다 몇 픽셀씩 위치를 살짝 옮김
   function drift() {
@@ -371,12 +537,17 @@
     const first = new Date(y, m, 1).getDay(), days = new Date(y, m + 1, 0).getDate();
     const prefix = `${y}-${pad(m + 1)}-`;
     const evDays = new Set(events.filter(e => e.date.startsWith(prefix)).map(e => +e.date.slice(8)));
-    let cells = WD.map((w, i) => `<span class="wd${i === 0 ? ' sun' : ''}">${w}</span>`).join('') + '<span></span>'.repeat(first);
+    const dayCls = i => i === 0 ? 'sun' : i === 6 ? 'sat' : '';
+    let cells = WD.map((w, i) => `<span class="wd ${dayCls(i)}">${w}</span>`).join('') + '<span></span>'.repeat(first);
     for (let d = 1; d <= days; d++) {
-      const cls = [(first + d - 1) % 7 === 0 && 'sun', d === now.getDate() && 'today', evDays.has(d) && 'ev'].filter(Boolean).join(' ');
+      const cls = [dayCls((first + d - 1) % 7), d === now.getDate() && 'today', evDays.has(d) && 'ev'].filter(Boolean).join(' ');
       cells += `<span class="${cls}">${d}</span>`;
     }
-    const html = `<div class="cal-head"><b>${m + 1}월</b><span>${y}</span></div><div class="cal-grid">${cells}</div>`;
+    const next = upcomingEvents()[0];
+    const html = `<div class="cal-in">
+      <div class="cal-side"><div class="ev-wd">${WD[now.getDay()]}요일</div><div class="cal-big">${now.getDate()}</div>
+        <div class="cal-next">${next ? `<b>${esc(next.title)}</b>${whenLabel(next, true)}` : '예정된 일정 없음'}</div></div>
+      <div class="cal-main"><div class="cal-head"><b>${m + 1}월</b><span>${y}</span></div><div class="cal-grid">${cells}</div></div></div>`;
     $$('[data-r="calendar"]').forEach(el => { el.innerHTML = html; });
   }
   function upcomingEvents() {
@@ -433,7 +604,7 @@
   function renderWeather(msg) {
     const j = state.wx;
     if (!j) {
-      $$('[data-r="weather"]').forEach(el => { el.className = 'w w-weather'; el.innerHTML = `<div class="wx-msg">${msg || '날씨 불러오는 중…'}</div>`; });
+      $$('[data-r="weather"]').forEach(el => { el.className = 'w w-weather'; el.innerHTML = `<div class="wx-in"><div class="wx-msg">${msg || '날씨 불러오는 중…'}</div></div>`; });
       return;
     }
     const c = j.current, day = !!c.is_day, now = wx(c.weather_code, day);
@@ -447,9 +618,9 @@
       const temp = Math.round(k === 0 ? c.temperature_2m : j.hourly.temperature_2m[n]);
       hours += `<div class="hr"><small>${label}</small><span>${wx(j.hourly.weather_code[n], !!j.hourly.is_day[n]).icon}</span><b>${temp}°</b></div>`;
     }
-    const html = `<div class="wx-top"><div><div class="wx-place">${esc(state.pos?.name || '')} <span class="wx-arrow">➤</span></div>
+    const html = `<div class="wx-in"><div class="wx-top"><div><div class="wx-place">${esc(state.pos?.name || '')} <span class="wx-arrow">➤</span></div>
       <div class="wx-temp">${Math.round(c.temperature_2m)}°</div></div><div class="wx-ic">${now.icon}</div></div>
-      <div class="wx-desc">${now.label}</div><div class="wx-hl">최고 ${hi}° · 최저 ${lo}°</div><div class="wx-hours">${hours}</div>`;
+      <div class="wx-desc">${now.label}</div><div class="wx-hl">최고 ${hi}° · 최저 ${lo}°</div><div class="wx-hours">${hours}</div></div>`;
     $$('[data-r="weather"]').forEach(el => { el.className = 'w w-weather ' + wxTheme(c.weather_code, day); el.innerHTML = html; });
     fill('wxmini', `${now.icon} ${Math.round(c.temperature_2m)}°`);
     fill('sunrise', '일출 ' + fmtClock(j.daily.sunrise[0].slice(11, 16)));
@@ -509,7 +680,7 @@
     });
   }
 
-  // ── 화면 꺼짐 방지 · 전체화면 ──
+  // ── 화면 꺼짐 방지 · 전체화면 · 홈 화면 앱 ──
   let wakeLock = null;
   async function keepAwake() {
     if ('wakeLock' in navigator && document.visibilityState === 'visible' && !wakeLock) {
@@ -545,6 +716,25 @@
     } catch { toast('이 브라우저에서는 전체화면을 쓸 수 없어요'); }
   });
 
+  // 브라우저가 '앱 설치'를 허락하면 버튼으로, 아니면 메뉴에서 추가하는 방법을 안내
+  let installEvt = null;
+  const installed = () => matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches;
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; renderInstall(); });
+  window.addEventListener('appinstalled', () => { installEvt = null; renderInstall(); toast('홈 화면에 추가했어요'); });
+  function renderInstall() {
+    $('#btnInstall').hidden = !installEvt;
+    $('#installText').textContent = installed() ? '앱으로 실행 중이에요'
+      : installEvt ? '홈 화면에 앱으로 추가'
+      : '홈 화면에 추가: 브라우저 메뉴(⋮) → "홈 화면에 추가"';
+  }
+  $('#btnInstall').addEventListener('click', async () => {
+    if (!installEvt) return;
+    installEvt.prompt();
+    await installEvt.userChoice;
+    installEvt = null;
+    renderInstall();
+  });
+
   function toast(msg) {
     const t = $('#toast');
     t.textContent = msg; t.classList.add('on');
@@ -571,13 +761,15 @@
       : '<p class="muted">예정된 일정이 없어요</p>';
     $$('#evList .del').forEach(b => b.addEventListener('click', () => { events = events.filter(e => e.id !== b.dataset.id); saveEvents(); renderSheet(); }));
     renderAwake();
+    renderInstall();
   }
   $('#gear').addEventListener('click', () => openSheet());
   $('#sheetClose').addEventListener('click', closeSheet);
+  $('#btnEdit').addEventListener('click', () => setEditing(true));
   sheet.addEventListener('click', e => { if (e.target === sheet) closeSheet(); });
   document.addEventListener('click', e => {
     const w = e.target.closest('[data-open]');
-    if (w && sheet.hidden) openSheet('sec' + w.dataset.open[0].toUpperCase() + w.dataset.open.slice(1));
+    if (w && sheet.hidden && !document.body.classList.contains('editing')) openSheet('sec' + w.dataset.open[0].toUpperCase() + w.dataset.open.slice(1));
   });
 
   function saveSettings() {
@@ -639,12 +831,16 @@
 
   // ── 시작 ──
   let resizeT;
-  window.addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTimeout(() => { restoreLayout(); renderMap(); }, 200); });
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeT);
+    resizeT = setTimeout(() => { pager.scrollLeft = store.get('page', 0) * pager.clientWidth; }, 200);
+  });
 
   const cachedWx = store.get('wx', null);
   if (cachedWx && Date.now() - cachedWx.at < 3 * 3600e3) state.wx = cachedWx.data;
+  applyLayout();
   renderCalendar(); renderEvents(); renderWeather(); renderPlace(); updateNight();
-  requestAnimationFrame(() => { restoreLayout(); renderMap(); });
+  requestAnimationFrame(() => { pager.scrollLeft = store.get('page', 0) * pager.clientWidth; stacks.forEach(snapStack); renderMap(); });
   requestAnimationFrame(frame);
   locate();
   setInterval(loadWeather, 15 * 60e3);
