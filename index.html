@@ -167,7 +167,10 @@
     .wx-place { font-size: 9cqh; } .wx-temp { font-size: 34cqh; } .wx-ic { font-size: 17cqh; }
     .wx-desc { font-size: 8.5cqh; } .wx-hl { font-size: 7.5cqh; }
     .hr small { font-size: 7cqh; } .hr span { font-size: 11cqh; } .hr b { font-size: 8.5cqh; }
+    .wx-hours { gap: 3cqh; min-width: 0; overflow: hidden; }
   }
+  /* 덜 납작한 칸은 오른쪽 자리가 좁아서 시간별 예보를 3개만 */
+  @container (min-aspect-ratio: 3/2) and (max-aspect-ratio: 19/10) { .hr:nth-child(n+4) { display: none; } }
 
   /* ── 지도(위치) ── */
   .w-map { background: #1b1d22; }
