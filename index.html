@@ -279,6 +279,7 @@
     <div class="sec"><h3>화면</h3>
       <div class="row"><span class="grow">화면 배치 (칸 나누기 · 크기 조절 · 위젯 고르기)</span><button id="btnEdit" class="primary">편집하기</button></div>
       <div class="row"><span class="grow">전체화면 + 가로 고정</span><button id="btnFull">전체화면</button></div>
+      <div class="row"><label class="grow" for="optAutoFull">화면을 터치하면 자동으로 전체화면<br><small class="muted">홈 화면 바로가기로 열 때 앱처럼 보이게 해요</small></label><input type="checkbox" id="optAutoFull"></div>
       <div class="row"><span class="grow" id="installText">홈 화면에 앱으로 추가</span><button id="btnInstall" hidden>추가하기</button></div>
       <div class="row"><span>화면 꺼짐 방지</span><small id="awakeState" class="muted grow" style="text-align:right"></small></div>
       <div class="row"><label class="grow" for="optH24">24시간 표기</label><input type="checkbox" id="optH24"></div>
@@ -321,7 +322,7 @@
   const WD = ['일', '월', '화', '수', '목', '금', '토'];
   const DEFAULT_POS = { lat: 37.5665, lon: 126.978, name: '서울', region: '대한민국' };
 
-  const settings = Object.assign({ h24: false, night: 'auto' }, store.get('settings', {}));
+  const settings = Object.assign({ h24: false, night: 'auto', autoFull: true }, store.get('settings', {}));
   let events = store.get('events', []);
   let locPref = store.get('loc', { mode: 'gps' });
   const state = { pos: store.get('pos', null), wx: null };
@@ -709,14 +710,21 @@
     chromeT = setTimeout(() => document.body.classList.remove('chrome'), 4000);
     if (!wakeLock) keepAwake();
   });
+  async function enterFullscreen() {
+    await document.documentElement.requestFullscreen();
+    try { await screen.orientation.lock('landscape'); } catch {}
+  }
   $('#btnFull').addEventListener('click', async () => {
     try {
-      if (!document.fullscreenElement) {
-        await document.documentElement.requestFullscreen();
-        try { await screen.orientation.lock('landscape'); } catch {}
-        closeSheet();
-      } else await document.exitFullscreen();
+      if (!document.fullscreenElement) { await enterFullscreen(); closeSheet(); }
+      else await document.exitFullscreen();
     } catch { toast('이 브라우저에서는 전체화면을 쓸 수 없어요'); }
+  });
+  // 앱 설치가 안 되고 바로가기로 열린 경우: 첫 터치에 전체화면으로 (브라우저 규칙상 터치가 있어야 가능)
+  document.addEventListener('click', e => {
+    if (!settings.autoFull || document.fullscreenElement || installed() || !document.fullscreenEnabled) return;
+    if (e.target.closest('#sheet, #gear, #btnFull')) return;
+    enterFullscreen().catch(() => {});
   });
 
   // 브라우저가 '앱 설치'를 허락하면 버튼으로, 아니면 메뉴에서 추가하는 방법을 안내
@@ -754,6 +762,7 @@
   function closeSheet() { sheet.hidden = true; }
   function renderSheet() {
     $('#optH24').checked = settings.h24;
+    $('#optAutoFull').checked = settings.autoFull;
     $('#optNight').value = settings.night;
     $('#locNow').textContent = (locPref.mode === 'manual' ? '지정한 도시: ' : 'GPS 현재 위치: ') + (state.pos?.name || '찾는 중…');
     $('#btnFull').textContent = document.fullscreenElement ? '전체화면 끄기' : '전체화면';
@@ -781,6 +790,7 @@
     renderWeather(); renderEvents(); updateNight();
   }
   $('#optH24').addEventListener('change', e => { settings.h24 = e.target.checked; saveSettings(); });
+  $('#optAutoFull').addEventListener('change', e => { settings.autoFull = e.target.checked; saveSettings(); });
   $('#optNight').addEventListener('change', e => { settings.night = e.target.value; saveSettings(); });
 
   $('#btnGps').addEventListener('click', () => {
