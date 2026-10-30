@@ -222,6 +222,7 @@
   .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; background: #2c2c2e; border-radius: 10px; padding: 9px 12px; margin-bottom: 8px; }
   .grow { flex: 1; min-width: 0; }
   .muted { color: var(--dim); font-size: 13px; }
+  body.in-app .web-only { display: none; }
   p.muted { margin: 0 4px 10px; }
   .sheet-body input, .sheet-body select, .sheet-body button { font: inherit; color: #fff; border: 0; border-radius: 8px; padding: 7px 11px; background: #3a3a3c; }
   .sheet-body input[type=checkbox] { width: 22px; height: 22px; accent-color: #30d158; }
@@ -278,10 +279,10 @@
 
     <div class="sec"><h3>화면</h3>
       <div class="row"><span class="grow">화면 배치 (칸 나누기 · 크기 조절 · 위젯 고르기)</span><button id="btnEdit" class="primary">편집하기</button></div>
-      <div class="row"><span class="grow">전체화면 + 가로 고정</span><button id="btnFull">전체화면</button></div>
-      <div class="row"><label class="grow" for="optAutoFull">화면을 터치하면 자동으로 전체화면<br><small class="muted">홈 화면 바로가기로 열 때 앱처럼 보이게 해요</small></label><input type="checkbox" id="optAutoFull"></div>
-      <div class="row"><span class="grow" id="installText">홈 화면에 앱으로 추가</span><button id="btnInstall" hidden>추가하기</button></div>
-      <div class="row"><span>화면 꺼짐 방지</span><small id="awakeState" class="muted grow" style="text-align:right"></small></div>
+      <div class="row web-only"><span class="grow">전체화면 + 가로 고정</span><button id="btnFull">전체화면</button></div>
+      <div class="row web-only"><label class="grow" for="optAutoFull">화면을 터치하면 자동으로 전체화면<br><small class="muted">홈 화면 바로가기로 열 때 앱처럼 보이게 해요</small></label><input type="checkbox" id="optAutoFull"></div>
+      <div class="row web-only"><span class="grow" id="installText">홈 화면에 앱으로 추가</span><button id="btnInstall" hidden>추가하기</button></div>
+      <div class="row web-only"><span>화면 꺼짐 방지</span><small id="awakeState" class="muted grow" style="text-align:right"></small></div>
       <div class="row"><label class="grow" for="optH24">24시간 표기</label><input type="checkbox" id="optH24"></div>
       <div class="row"><label class="grow" for="optNight">야간 모드 (붉은 화면)</label>
         <select id="optNight"><option value="auto">자동 (22시~7시)</option><option value="on">항상 켜기</option><option value="off">끄기</option></select></div>
@@ -321,6 +322,9 @@
   const dayKey = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   const WD = ['일', '월', '화', '수', '목', '금', '토'];
   const DEFAULT_POS = { lat: 37.5665, lon: 126.978, name: '서울', region: '대한민국' };
+  // 안드로이드 스탠바이 앱 안에서 열린 경우: 전체화면·설치·꺼짐방지는 앱이 맡으므로 관련 메뉴를 숨김
+  const inApp = /\bStandbyApp\//.test(navigator.userAgent);
+  document.body.classList.toggle('in-app', inApp);
 
   const settings = Object.assign({ h24: false, night: 'auto', autoFull: true }, store.get('settings', {}));
   let events = store.get('events', []);
@@ -729,7 +733,7 @@
 
   // 브라우저가 '앱 설치'를 허락하면 버튼으로, 아니면 메뉴에서 추가하는 방법을 안내
   let installEvt = null;
-  const installed = () => matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches;
+  const installed = () => inApp || matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches;
   window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; renderInstall(); });
   window.addEventListener('appinstalled', () => { installEvt = null; renderInstall(); toast('홈 화면에 추가했어요'); });
   function renderInstall() {
