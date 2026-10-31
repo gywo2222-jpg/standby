@@ -231,7 +231,7 @@
     width: 44px; height: 44px; border-radius: 50%; border: 0; background: rgba(60,60,67,.7); color: #fff; display: grid; place-items: center;
     opacity: 0; pointer-events: none; transition: opacity .4s; cursor: pointer; }
   body.chrome #gear { opacity: 1; pointer-events: auto; }
-  body.editing #gear { display: none; }
+  body.editing #gear, body.auto #gear, body.auto .ev-empty small { display: none; }
   body.on-clock #splitL, body.on-clock #splitR { display: none; }
   #toast { position: fixed; z-index: 20; left: 50%; top: 6vmin; transform: translate(-50%, -20px); max-width: 90vw; padding: 10px 16px;
     border-radius: 12px; background: rgba(44,44,46,.95); font-size: 14px; opacity: 0; transition: .3s; pointer-events: none; text-align: center; }
@@ -794,7 +794,15 @@
 
   // ── 설정 창 ──
   const sheet = $('#sheet');
+  // 앱이 ㅅ자 감지로 자동으로 띄운 경우(#auto): 터치해도 설정 창·편집이 열리지 않음 (앱에서 직접 열 때만 가능)
+  const isAuto = () => location.hash === '#auto';
+  function applyMode() {
+    document.body.classList.toggle('auto', isAuto());
+    if (isAuto()) { closeSheet(); if (document.body.classList.contains('editing')) setEditing(false); }
+  }
+  window.addEventListener('hashchange', applyMode);
   function openSheet(section) {
+    if (isAuto()) return;
     renderSheet();
     sheet.hidden = false;
     if (section) $('#' + section).scrollIntoView({ block: 'start' });
@@ -891,7 +899,7 @@
 
   const cachedWx = store.get('wx', null);
   if (cachedWx && Date.now() - cachedWx.at < 3 * 3600e3) state.wx = cachedWx.data;
-  applyLayout();
+  applyLayout(); applyMode();
   renderCalendar(); renderEvents(); renderWeather(); renderPlace(); updateNight();
   requestAnimationFrame(() => { showPage(); stacks.forEach(snapStack); renderMap(); });
   requestAnimationFrame(frame);
