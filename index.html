@@ -559,9 +559,18 @@
   }
   const GLOW = [[0, '#1d2b6b', '#8fa8ff'], [5, '#6b3b8f', '#ffb3d9'], [7, '#ff8a3d', '#ffe1b0'], [11, '#2f8cff', '#cfe6ff'],
                 [16, '#ff6a3d', '#ffd0a8'], [19, '#7a2d8f', '#e6b3ff'], [21, '#1d2b6b', '#8fa8ff']];
+  // 일출·일몰 시각에 맞춰 색을 고름: 밤 → 새벽(일출 1시간 반 전) → 아침 → 한낮 → 노을(일몰 2시간 반 전) → 저녁 → 밤
+  // 날씨(일출·일몰)를 아직 못 받았으면 위의 정해진 시각표를 씀
   function setGlow(now) {
+    const sun = sunTimes(), m = now.getHours() * 60 + now.getMinutes();
     let g = GLOW[0];
-    for (const x of GLOW) if (now.getHours() >= x[0]) g = x;
+    if (sun) {
+      const { rise, set } = sun, mid = (rise + set) / 2;
+      g = m < rise - 90 ? GLOW[0] : m < rise + 30 ? GLOW[1] : m < Math.min(rise + 240, mid) ? GLOW[2]
+        : m < Math.max(set - 150, mid) ? GLOW[3] : m < set + 20 ? GLOW[4] : m < set + 120 ? GLOW[5] : GLOW[6];
+    } else {
+      for (const x of GLOW) if (now.getHours() >= x[0]) g = x;
+    }
     $$('.face-glow').forEach(el => { el.style.setProperty('--g1', g[1]); el.style.setProperty('--g2', g[2]); });
   }
 
@@ -620,10 +629,16 @@
   const wxKind = code => code >= 95 ? 'storm' : (code >= 71 && code <= 77) || code === 85 || code === 86 ? 'snow'
     : code >= 51 ? 'rain' : code >= 45 ? 'fog' : code >= 3 ? 'cloud' : 'clear';
   // 시간대: 일출 앞뒤 45분 = 새벽, 일몰 1시간 전~30분 뒤 = 해질녘
-  function dayPhase(j) {
+  // 오늘의 일출·일몰 (자정부터 몇 분째인지). 날씨를 아직 못 받았으면 null
+  function sunTimes(j = state.wx) {
+    if (!j?.daily?.sunrise) return null;
     const min = s => +s.slice(11, 13) * 60 + +s.slice(14, 16);
+    const i = Math.max(0, (j.daily.time || []).indexOf(dayKey(new Date())));
+    return { rise: min(j.daily.sunrise[i]), set: min(j.daily.sunset[i]) };
+  }
+  function dayPhase(j) {
     const d = new Date(), now = d.getHours() * 60 + d.getMinutes();
-    const rise = min(j.daily.sunrise[0]), set = min(j.daily.sunset[0]);
+    const { rise, set } = sunTimes(j);
     if (Math.abs(now - rise) <= 45) return 'dawn';
     if (now >= set - 60 && now <= set + 30) return 'dusk';
     return now > rise && now < set ? 'day' : 'night';
@@ -667,6 +682,7 @@
       <div class="wx-desc">${now.label}</div><div class="wx-hl">최고 ${hi}° · 최저 ${lo}°</div><div class="wx-hours">${hours}</div></div>`;
     $$('[data-r="weather"]').forEach(el => { el.className = `w w-weather wx-${wxKind(c.weather_code)} t-${dayPhase(j)}`; el.innerHTML = html; });
     fill('wxmini', `${now.icon} ${Math.round(c.temperature_2m)}°`);
+    setGlow(new Date()); // 일출·일몰을 받자마자 빛나는 시계 색도 맞춤
     fill('sunrise', '일출 ' + fmtClock(j.daily.sunrise[0].slice(11, 16)));
     fill('sunset', '일몰 ' + fmtClock(j.daily.sunset[0].slice(11, 16)));
   }
