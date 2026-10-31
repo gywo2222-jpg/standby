@@ -674,14 +674,16 @@
   // ── 위치 · 지도 ──
   function locate(fresh) {
     if (locPref.mode === 'manual') { setPos({ lat: locPref.lat, lon: locPref.lon, name: locPref.name, region: locPref.region || '' }); return; }
-    if (!('geolocation' in navigator)) { gpsFail(); return; }
+    if (!('geolocation' in navigator)) { gpsFail(fresh); return; }
+    // 화면이 막 켜진 직후나 실내에서는 위치를 잡는 데 15초 넘게 걸릴 때가 있어 1분까지 기다림
     navigator.geolocation.getCurrentPosition(
       p => setPos({ lat: p.coords.latitude, lon: p.coords.longitude }, true),
-      gpsFail,
-      { enableHighAccuracy: false, timeout: 15000, maximumAge: fresh ? 0 : 10 * 60 * 1000 });
+      () => gpsFail(fresh),
+      { enableHighAccuracy: false, timeout: 60000, maximumAge: fresh ? 0 : 30 * 60 * 1000 });
   }
-  function gpsFail() {
-    if (state.pos) { loadWeather(); toast('현재 위치를 찾지 못해 마지막 위치로 표시해요'); return; }
+  // 저장해 둔 위치가 있으면 조용히 그 위치를 씀 (직접 'GPS로 찾기'를 눌렀을 때만 알려 줌)
+  function gpsFail(fresh) {
+    if (state.pos) { loadWeather(); if (fresh) toast('현재 위치를 찾지 못해 마지막 위치로 표시해요'); return; }
     setPos({ ...DEFAULT_POS });
     toast('위치 권한이 없어 서울 기준으로 표시해요. 설정에서 도시를 고를 수 있어요');
   }
