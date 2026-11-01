@@ -197,6 +197,10 @@
   .wx-top { display: flex; justify-content: space-between; align-items: flex-start; }
   .wx-place { font-size: 6.5cqmin; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60cqw; }
   .wx-arrow { font-size: 4.5cqmin; }
+  /* 직접 그린 아이콘: 글자 크기를 따라 커지고 줄어듦 */
+  .wi { width: 1.3em; height: 1.3em; vertical-align: -.3em; overflow: visible; }
+  .wx-ic .wi { display: block; }
+  .loc { width: 1em; height: 1em; fill: currentColor; vertical-align: -.1em; }
   .wx-temp { font-family: var(--num); font-size: 26cqmin; font-weight: 300; line-height: 1.05; }
   .wx-ic { font-size: 14cqmin; line-height: 1; }
   .wx-desc { font-size: 6.2cqmin; font-weight: 600; }
@@ -248,7 +252,8 @@
   .wd-tile b { display: block; font: 600 19px var(--num); margin-top: 1px; white-space: nowrap; }
   .wd-tile b small { font-size: 12px; font-weight: 500; margin-left: 2px; color: var(--dim); }
   .wd-tile em { display: block; font-style: normal; font-size: 11.5px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .wd-arrow { display: inline-block; margin-right: 4px; color: #4da3ff; }
+  .wd-arrow { display: inline-block; margin-right: 4px; color: #4da3ff; width: .8em; height: .8em; }
+  .wd-arrow svg { display: block; width: 100%; height: 100%; fill: currentColor; }
   .wd-sec { margin-top: 10px; background: #1a1d24; border-radius: 12px; padding: 8px 0 6px; }
   .wd-sec h4 { margin: 0 12px 4px; font-size: 11.5px; color: var(--dim); font-weight: 600; }
   .wd-hours { overflow-x: auto; scrollbar-width: none; overscroll-behavior: contain; font-family: var(--num); }
@@ -421,6 +426,8 @@
   const pad = n => String(n).padStart(2, '0');
   const dayKey = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   const WD = ['일', '월', '화', '수', '목', '금', '토'];
+  // 현재 위치 표시 (기울어진 화살촉, 글자색을 따라감)
+  const LOC = '<svg class="loc" viewBox="0 0 16 16" aria-hidden="true"><path d="M14.6 1.4 1.6 7.1l5.6 1.7 1.7 5.6z"/></svg>';
   const DEFAULT_POS = { lat: 37.5665, lon: 126.978, name: '서울', region: '대한민국' };
   // 안드로이드 스탠바이 앱 안에서 열린 경우: 전체화면·설치·꺼짐방지는 앱이 맡으므로 관련 메뉴를 숨김
   const inApp = /\bStandbyApp\//.test(navigator.userAgent);
@@ -457,7 +464,7 @@
     events: () => '<div class="w w-events" data-open="events"><div class="evw-in"><div class="evw-date"><div class="ev-wd" data-f="wday"></div><div class="ev-day" data-f="dnum"></div></div><div class="ev-list" data-r="events"></div></div></div>',
     weather: () => '<div class="w w-weather" data-r="weather"></div>',
     map: () => `<div class="w w-map"><div class="map-tiles" data-r="map"></div><div class="map-pin"></div>
-      <div class="map-label">➤ 현재 위치</div><div class="map-copy">© OpenStreetMap</div>
+      <div class="map-label">${LOC} 현재 위치</div><div class="map-copy">© OpenStreetMap</div>
       <div class="map-info"><div class="map-name" data-f="place"></div><div class="map-sub" data-f="region"></div>
       <div class="map-sun"><span data-f="sunrise"></span><span data-f="sunset"></span></div></div></div>`,
     faceBig: () => `<div class="w face face-big">${faceTop}<div class="fb-time" data-f="time"></div></div>`,
@@ -691,17 +698,51 @@
   function saveEvents() { store.set('events', events); renderCalendar(); renderEvents(); }
 
   // ── 날씨 ──
+  // 날씨 아이콘: 폰마다 모양이 다른 이모지 대신 직접 그린 그림 (32칸 격자, 해·구름·비·눈을 조합)
+  const SUN_C = '#ffd60a', CLOUD_C = '#eef1f5', RAIN_C = '#5ac8fa', SNOW_C = '#d6ecff';
+  const sun = (x, y, r) => {
+    let rays = '';
+    for (let k = 0; k < 8; k++) {
+      const a = k * Math.PI / 4, c = Math.cos(a), s = Math.sin(a);
+      rays += `M${(x + c * r * 1.55).toFixed(2)} ${(y + s * r * 1.55).toFixed(2)}L${(x + c * r * 2).toFixed(2)} ${(y + s * r * 2).toFixed(2)}`;
+    }
+    return `<circle cx="${x}" cy="${y}" r="${r}" fill="${SUN_C}"/><path d="${rays}" stroke="${SUN_C}" stroke-width="${(r * .38).toFixed(2)}" stroke-linecap="round"/>`;
+  };
+  const moon = t => `<path transform="${t}" fill="#f2efe1" d="M13.68 7.1A9 9 0 1 0 23.4 19.25A8 8 0 0 1 13.68 7.1Z"/>`;
+  const cloud = (t = '', c = CLOUD_C) => `<g transform="${t}" fill="${c}"><circle cx="9.5" cy="19" r="5"/><circle cx="16" cy="14.5" r="7"/><circle cx="22.5" cy="19" r="5"/><rect x="9.5" y="17" width="13" height="7"/></g>`;
+  const UP = 'translate(0 -4)';   // 비·눈이 올 때 구름을 위로 올려 아래 자리를 만듦
+  const lines = (pts, c, w = 2) => `<path d="${pts}" stroke="${c}" stroke-width="${w}" stroke-linecap="round" fill="none"/>`;
+  const dots = (pts, c, r) => pts.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${c}"/>`).join('');
+  const ICONS = {
+    sun: sun(16, 16, 6),
+    moon: moon(''),
+    sunCloud: sun(11.5, 11, 4.2) + cloud('translate(5 7) scale(.8)'),
+    moonCloud: moon('translate(-.5 -1.5) scale(.66)') + cloud('translate(5 7) scale(.8)'),
+    cloud: cloud('translate(0 -1)'),
+    overcast: cloud('translate(7 -4) scale(.7)', '#9aa4b2') + cloud('translate(-1 1)'),
+    fog: cloud('translate(0 -5)') + lines('M6 23.5h17M9 27.5h17', '#c3cad4', 2.2),
+    drizzle: cloud(UP, '#d5dbe3') + dots([[11, 26], [16.5, 28], [22, 26]], RAIN_C, 1.4),
+    rain: cloud(UP, '#d5dbe3') + lines('M11.5 24.5l-1.6 4.5M17 24.5l-1.6 4.5M22.5 24.5l-1.6 4.5', RAIN_C),
+    heavyRain: cloud(UP, '#bcc5d0') + lines('M9.5 24.5l-2 5.5M14.5 24.5l-2 5.5M19.5 24.5l-2 5.5M24.5 24.5l-2 5.5', RAIN_C),
+    sleet: cloud(UP, '#d5dbe3') + lines('M11.5 24.5l-1.6 4.5M22.5 24.5l-1.6 4.5', RAIN_C) + dots([[16.5, 27]], SNOW_C, 1.7),
+    snow: cloud(UP, '#e3e8ee') + dots([[11, 25.5], [16.5, 28.5], [22, 25.5]], SNOW_C, 1.7),
+    heavySnow: cloud(UP, '#d5dbe3') + dots([[9.5, 25], [14.5, 28], [19.5, 25], [24.5, 28], [12, 30.5], [22, 30.5]], SNOW_C, 1.5),
+    storm: cloud(UP, '#9aa4b2') + `<path fill="${SUN_C}" d="M17.5 19.5 12 26.5h4l-1.5 5 6-7.5h-4l1.5-4.5z"/>`,
+  };
+  const icon = k => `<svg class="wi" viewBox="0 0 32 32" aria-hidden="true">${ICONS[k] || ICONS.cloud}</svg>`;
   const WX = {
-    0: ['맑음', '☀️', '🌙'], 1: ['대체로 맑음', '🌤️', '🌙'], 2: ['구름 조금', '⛅', '☁️'], 3: ['흐림', '☁️'],
-    45: ['안개', '🌫️'], 48: ['안개', '🌫️'], 51: ['이슬비', '🌦️', '🌧️'], 53: ['이슬비', '🌦️', '🌧️'], 55: ['이슬비', '🌧️'],
-    56: ['어는 이슬비', '🌧️'], 57: ['어는 이슬비', '🌧️'], 61: ['비', '🌧️'], 63: ['비', '🌧️'], 65: ['강한 비', '🌧️'],
-    66: ['어는 비', '🌧️'], 67: ['어는 비', '🌧️'], 71: ['눈', '🌨️'], 73: ['눈', '🌨️'], 75: ['강한 눈', '❄️'], 77: ['싸락눈', '🌨️'],
-    80: ['소나기', '🌦️', '🌧️'], 81: ['소나기', '🌧️'], 82: ['강한 소나기', '🌧️'], 85: ['눈 소나기', '🌨️'], 86: ['눈 소나기', '🌨️'],
-    95: ['뇌우', '⛈️'], 96: ['우박 동반 뇌우', '⛈️'], 99: ['우박 동반 뇌우', '⛈️'],
+    0: ['맑음', 'sun', 'moon'], 1: ['대체로 맑음', 'sun', 'moon'], 2: ['구름 조금', 'sunCloud', 'moonCloud'], 3: ['흐림', 'overcast'],
+    45: ['안개', 'fog'], 48: ['안개', 'fog'], 51: ['이슬비', 'drizzle'], 53: ['이슬비', 'drizzle'], 55: ['이슬비', 'drizzle'],
+    56: ['어는 이슬비', 'sleet'], 57: ['어는 이슬비', 'sleet'], 61: ['비', 'rain'], 63: ['비', 'rain'], 65: ['강한 비', 'heavyRain'],
+    66: ['어는 비', 'sleet'], 67: ['어는 비', 'sleet'], 71: ['눈', 'snow'], 73: ['눈', 'snow'], 75: ['강한 눈', 'heavySnow'], 77: ['싸락눈', 'snow'],
+    80: ['소나기', 'rain'], 81: ['소나기', 'rain'], 82: ['강한 소나기', 'heavyRain'], 85: ['눈 소나기', 'snow'], 86: ['눈 소나기', 'heavySnow'],
+    95: ['뇌우', 'storm'], 96: ['우박 동반 뇌우', 'storm'], 99: ['우박 동반 뇌우', 'storm'],
   };
   // 강수확률 앞에 붙는 작은 물방울 (글자색을 따라감)
   const DROP = '<svg class="drop" viewBox="0 0 10 14" aria-hidden="true"><path d="M5 .5C3.6 2.6 1 5.8 1 8.9a4 4 0 0 0 8 0C9 5.8 6.4 2.6 5 .5z"/></svg>';
-  const wx = (code, day) => { const w = WX[code] || ['-', '🌡️']; return { label: w[0], icon: (!day && w[2]) || w[1] }; };
+  // 바람 방향 화살표
+  const ARROW = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5 3 8.5h3.4v6h3.2v-6H13z"/></svg>';
+  const wx = (code, day) => { const w = WX[code] || ['-', 'cloud']; return { label: w[0], icon: icon((!day && w[2]) || w[1]) }; };
   const wxKind = code => code >= 95 ? 'storm' : (code >= 71 && code <= 77) || code === 85 || code === 86 ? 'snow'
     : code >= 51 ? 'rain' : code >= 45 ? 'fog' : code >= 3 ? 'cloud' : 'clear';
   // 시간대: 일출 앞뒤 45분 = 새벽, 일몰 1시간 전~30분 뒤 = 해질녘
@@ -758,11 +799,11 @@
       hours += `<div class="hr"><small>${label}</small><span>${wx(j.hourly.weather_code[n], !!j.hourly.is_day[n]).icon}</span><b>${temp}°</b>`
         + (pop == null ? '' : `<i class="${pop ? '' : 'zero'}">${DROP}${pop}%</i>`) + '</div>';
     }
-    const html = `<div class="wx-in"><div class="wx-top"><div><div class="wx-place">${esc(state.pos?.name || '')} <span class="wx-arrow">➤</span></div>
+    const html = `<div class="wx-in"><div class="wx-top"><div><div class="wx-place">${esc(state.pos?.name || '')} <span class="wx-arrow">${LOC}</span></div>
       <div class="wx-temp">${Math.round(c.temperature_2m)}°</div></div><div class="wx-ic">${now.icon}</div></div>
       <div class="wx-desc">${now.label}</div><div class="wx-hl">최고 ${hi}° · 최저 ${lo}°</div><div class="wx-hours">${hours}</div></div>`;
     $$('[data-r="weather"]').forEach(el => { el.className = `w w-weather wx-${wxKind(c.weather_code)} t-${dayPhase(j)}`; el.innerHTML = html; });
-    fill('wxmini', `${now.icon} ${Math.round(c.temperature_2m)}°`);
+    $$('[data-f="wxmini"]').forEach(el => { el.innerHTML = `${now.icon} ${Math.round(c.temperature_2m)}°`; });
     setGlow(new Date()); // 일출·일몰을 받자마자 빛나는 시계 색도 맞춤
     fill('sunrise', '일출 ' + fmtClock(j.daily.sunrise[0].slice(11, 16)));
     fill('sunset', '일몰 ' + fmtClock(j.daily.sunset[0].slice(11, 16)));
@@ -831,7 +872,7 @@
     const tiles = [
       tile('체감온도', `${r0(c.apparent_temperature)}°`, `실제 ${r0(c.temperature_2m)}°`),
       tile('습도', `${r0(c.relative_humidity_2m)}%`),
-      tile('바람', `<span class="wd-arrow" style="transform:rotate(${dir + 180}deg)">↑</span>${c.wind_speed_10m.toFixed(1)}<small>m/s</small>`,
+      tile('바람', `<span class="wd-arrow" style="transform:rotate(${dir + 180}deg)">${ARROW}</span>${c.wind_speed_10m.toFixed(1)}<small>m/s</small>`,
         `${WIND16[Math.round(dir / 22.5) % 16]}풍 · 돌풍 ${r0(c.wind_gusts_10m)}m/s`),
       tile('오늘 강수량', `${(d.precipitation_sum[0] ?? 0).toFixed(1)}<small>mm</small>`, `${DROP}비 올 확률 ${d.precipitation_probability_max[0] ?? 0}%`),
       air('pm10'), air('pm2_5'),
