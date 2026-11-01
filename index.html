@@ -201,29 +201,29 @@
   .wx-ic { font-size: 14cqmin; line-height: 1; }
   .wx-desc { font-size: 6.2cqmin; font-weight: 600; }
   .wx-hl { font-size: 5.6cqmin; color: rgba(255,255,255,.8); margin-top: 1cqmin; }
-  .wx-hours { margin-top: auto; display: flex; justify-content: space-between; }
-  .hr { display: flex; flex-direction: column; align-items: center; gap: 1.6cqmin; font-family: var(--num); }
+  /* 시간별 예보: 칸 너비에 들어가는 만큼만 보여 줌 (한 시간 칸이 --hw보다 좁아지면 뒤쪽 시간은 높이 0인 둘째 줄로 밀려 안 보임) */
+  .wx-hours { --hw: 16.5cqmin; margin-top: auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(var(--hw), 1fr));
+    grid-template-rows: auto; grid-auto-rows: 0; row-gap: 0; overflow: hidden; }
+  .hr { display: flex; flex-direction: column; align-items: center; gap: 1.6cqmin; font-family: var(--num); white-space: nowrap; }
   .hr small { font-size: 4.8cqmin; color: rgba(255,255,255,.8); }
   .hr span { font-size: 7cqmin; }
   .hr b { font-size: 5.6cqmin; font-weight: 600; }
   /* 온도 아래 강수확률: 비 올 확률이 있으면 하늘색, 0%면 흐리게 */
   .hr i { font-style: normal; font-size: 4.6cqmin; font-weight: 600; color: #7fd0ff; }
   .hr i.zero { color: rgba(255,255,255,.4); font-weight: 400; }
-  .drop { width: .72em; height: 1em; fill: currentColor; vertical-align: -.12em; margin-right: .1em; }
+  .drop { width: .62em; height: .9em; fill: currentColor; vertical-align: -.08em; margin-right: .08em; }
   .wx-msg { margin: auto; font-size: 6cqmin; color: var(--dim); text-align: center; }
   /* 납작한 칸: 시간별 예보를 오른쪽으로, 글씨는 높이 기준으로 키움 (위의 기본 규칙보다 뒤에 있어야 적용됨) */
   @container (min-aspect-ratio: 3/2) {
-    .wx-in { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto auto 1fr; column-gap: 7cqw; padding: 7cqh 6cqw; }
+    .wx-in { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto auto 1fr; column-gap: 5cqw; padding: 7cqh 6cqw; }
     .wx-top, .wx-desc, .wx-hl { grid-column: 1; }
     .wx-top { gap: 4cqh; }
     .wx-hours { grid-column: 2; grid-row: 1 / 5; align-self: center; margin: 0; }
     .wx-place { font-size: 9cqh; } .wx-temp { font-size: 34cqh; } .wx-ic { font-size: 17cqh; }
     .wx-desc { font-size: 8.5cqh; } .wx-hl { font-size: 7.5cqh; }
-    .hr small { font-size: 7cqh; } .hr span { font-size: 11cqh; } .hr b { font-size: 8.5cqh; } .hr i { font-size: 6.5cqh; }
-    .wx-hours { gap: 3cqh; min-width: 0; overflow: hidden; }
+    .hr small { font-size: 7cqh; } .hr span { font-size: 11cqh; } .hr b { font-size: 8.5cqh; } .hr i { font-size: 5.6cqh; }
+    .wx-hours { --hw: 20cqh; column-gap: 1cqh; min-width: 0; }
   }
-  /* 덜 납작한 칸은 오른쪽 자리가 좁아서 시간별 예보를 3개만 */
-  @container (min-aspect-ratio: 3/2) and (max-aspect-ratio: 19/10) { .hr:nth-child(n+4) { display: none; } }
 
   /* ── 날씨 자세히: 날씨 위젯을 누르면 오른쪽에서 밀려 들어옴 (닫혀 있을 땐 그리지 않음) ── */
   #wxd { position: absolute; inset: 0; z-index: 3; background: #0b0d12; display: flex; flex-direction: column; font-size: 14px;
