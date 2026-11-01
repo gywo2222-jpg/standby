@@ -118,9 +118,8 @@
   .cal-grid .wd { color: var(--dim); font-size: 5cqmin; }
   .cal-grid .sun { color: #ff6961; }
   .cal-grid .sat { color: #5ea8ff; }
-  .cal-grid .today { background: var(--red); color: #fff; }
+  .cal-grid .today { background: #fff; color: #000; }  /* 일요일 빨강·토요일 파랑과 겹치지 않게 흰 원 */
   .cal-grid .ev::after { content: ""; position: absolute; bottom: .4cqmin; width: 1.4cqmin; height: 1.4cqmin; border-radius: 50%; background: var(--orange); }
-  .cal-grid .today.ev::after { background: #fff; }
 
   /* ── 일정 ── */
   .w-events { background: var(--card); }
