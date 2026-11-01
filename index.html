@@ -138,9 +138,9 @@
   .ev-empty { font-size: 6.5cqmin; color: var(--dim); line-height: 1.5; }
 
   /* ── 날씨 (넓은 칸에서는 시간별 예보를 오른쪽에) ── */
-  /* 배경 = 날씨(wx-맑음/구름/안개/비/눈/뇌우) × 시간대(t-새벽/낮/해질녘/밤). 움직이지 않는 그림이라 배터리 부담 없음 */
+  /* 배경 = 날씨(wx-맑음/구름/안개/비/눈/뇌우) × 시간대(t-새벽/낮/해질녘/밤) */
   .w-weather { background: var(--card); transition: background 1s; }
-  .w-weather::before { content: ""; position: absolute; inset: 0; pointer-events: none; }
+  .w-weather::before, .w-weather::after { content: ""; position: absolute; inset: 0; pointer-events: none; }
   .wx-clear.t-day   { background: linear-gradient(180deg, #2a6fd6, #5fa3ea); }
   .wx-clear.t-dawn  { background: linear-gradient(180deg, #34407a, #b9809b 70%, #f0ac88); }
   .wx-clear.t-dusk  { background: linear-gradient(180deg, #2c2a5e, #9c4c78 65%, #e8834a); }
@@ -155,23 +155,45 @@
   .wx-snow  { background: linear-gradient(180deg, #52637b, #8d9db2); }
   .wx-snow.t-night { background: linear-gradient(180deg, #1b2335, #445069); }
   .wx-storm { background: linear-gradient(180deg, #17182a, #3a3352); }
-  /* 비·뇌우는 비스듬한 빗줄기, 눈은 눈송이, 맑은 밤은 별, 안개는 옅은 띠 */
+  /* 비·뇌우는 빗줄기, 눈은 눈송이, 맑은 밤은 별, 안개는 옅은 덩어리.
+     ::before = 가까운 층, ::after = 먼 층(뇌우는 번개). 무늬 한 칸(--dx, --dy)만큼 밀었다가 처음으로 돌아가길 반복해 끊김 없이 이어짐 */
   .wx-rain::before, .wx-storm::before {
-    background: repeating-linear-gradient(105deg, transparent 0 18px, rgba(255,255,255,.14) 18px 19.5px);
-    -webkit-mask: repeating-linear-gradient(15deg, #000 0 14px, transparent 14px 34px);
-    mask: repeating-linear-gradient(15deg, #000 0 14px, transparent 14px 34px); }
+    top: -240px; right: -80px; --dx: -80px; --dy: 240px; --t: .55s;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='240' stroke='%23fff' stroke-opacity='.32' stroke-width='1.3' stroke-linecap='round'%3E%3Cpath d='M22 8l-6 18M62 48l-6 18M38 96l-6 18M74 138l-6 18M12 172l-6 18M50 206l-6 18'/%3E%3C/svg%3E"); }
+  .wx-rain::after {
+    top: -180px; right: -60px; --dx: -60px; --dy: 180px; --t: .9s;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='180' stroke='%23fff' stroke-opacity='.16' stroke-width='1' stroke-linecap='round'%3E%3Cpath d='M14 6l-4 12M44 40l-4 12M28 82l-4 12M54 118l-4 12M8 150l-4 12'/%3E%3C/svg%3E"); }
+  .wx-storm::after { background: #fff; opacity: 0; }
   .wx-snow::before {
-    background-image: radial-gradient(circle, rgba(255,255,255,.8) 0 1.8px, transparent 2.4px),
-                      radial-gradient(circle, rgba(255,255,255,.5) 0 1.2px, transparent 1.7px);
-    background-size: 41px 37px, 23px 29px; background-position: 0 0, 12px 9px; }
-  .wx-clear.t-night::before {
-    background-image: radial-gradient(circle, rgba(255,255,255,.85) 0 1.1px, transparent 1.6px),
-                      radial-gradient(circle, rgba(255,255,255,.45) 0 .8px, transparent 1.3px);
-    background-size: 97px 71px, 53px 61px; background-position: 13px 7px, 31px 29px;
+    top: -200px; --dx: 0px; --dy: 200px; --t: 9s;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' fill='%23fff' fill-opacity='.85'%3E%3Ccircle cx='20' cy='30' r='2.4'/%3E%3Ccircle cx='90' cy='10' r='2'/%3E%3Ccircle cx='150' cy='60' r='2.6'/%3E%3Ccircle cx='60' cy='100' r='2.2'/%3E%3Ccircle cx='180' cy='130' r='2'/%3E%3Ccircle cx='120' cy='160' r='2.4'/%3E%3Ccircle cx='30' cy='175' r='1.9'/%3E%3C/svg%3E"); }
+  .wx-snow::after {
+    top: -150px; --dx: 0px; --dy: 150px; --t: 15s;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150' fill='%23fff' fill-opacity='.5'%3E%3Ccircle cx='10' cy='12' r='1.3'/%3E%3Ccircle cx='55' cy='35' r='1.1'/%3E%3Ccircle cx='110' cy='8' r='1.2'/%3E%3Ccircle cx='135' cy='70' r='1.3'/%3E%3Ccircle cx='80' cy='85' r='1.1'/%3E%3Ccircle cx='25' cy='110' r='1.2'/%3E%3Ccircle cx='100' cy='130' r='1.3'/%3E%3C/svg%3E"); }
+  .wx-clear.t-night::before, .wx-clear.t-night::after {
     -webkit-mask: linear-gradient(#000, transparent 75%); mask: linear-gradient(#000, transparent 75%); }
-  .wx-fog::before { background: repeating-linear-gradient(180deg, transparent 0, rgba(255,255,255,.07) 7%, transparent 14%); }
+  .wx-clear.t-night::before {
+    background: radial-gradient(circle, rgba(255,255,255,.85) 0 1.1px, transparent 1.6px) 13px 7px / 97px 71px; }
+  .wx-clear.t-night::after {
+    background: radial-gradient(circle, rgba(255,255,255,.45) 0 .8px, transparent 1.3px) 31px 29px / 53px 61px; }
+  .wx-fog::before {
+    right: -360px; --dx: -360px; --dy: 0px; --t: 70s;
+    background: radial-gradient(ellipse 45% 22% at 30% 35%, rgba(255,255,255,.22), transparent 70%),
+                radial-gradient(ellipse 38% 18% at 75% 75%, rgba(255,255,255,.17), transparent 70%);
+    background-size: 360px 160px; }
+  /* 움직임: 화면에 보이는 날씨 위젯만(data-vis), 설정에서 끄면(wx-still) 멈춘 그림. 위치만 옮기는 방식이라 그래픽 칩이 가볍게 처리 */
+  body:not(.wx-still) .w-weather[data-vis]:is(.wx-rain, .wx-storm, .wx-snow, .wx-fog)::before,
+  body:not(.wx-still) .w-weather[data-vis]:is(.wx-rain, .wx-snow)::after {
+    will-change: transform; animation: wx-move var(--t) linear infinite; }
+  body:not(.wx-still) .w-weather[data-vis].wx-storm::after { animation: wx-flash 11s infinite; }
+  body:not(.wx-still) .w-weather[data-vis].wx-clear.t-night::before { animation: wx-twinkle 4s ease-in-out infinite alternate; }
+  body:not(.wx-still) .w-weather[data-vis].wx-clear.t-night::after { animation: wx-twinkle 5.5s ease-in-out -2s infinite alternate; }
+  @keyframes wx-move { to { transform: translate3d(var(--dx), var(--dy), 0); } }
+  @keyframes wx-flash { 0%, 88%, 89.5%, 91%, 92.5%, 100% { opacity: 0; } 88.7% { opacity: .45; } 91.6% { opacity: .3; } }
+  @keyframes wx-twinkle { from { opacity: 1; } to { opacity: .35; } }
+  @media (prefers-reduced-motion: reduce) { .w-weather::before, .w-weather::after { animation: none !important; } }
   /* 여백은 칸 크기 기준(cq 단위)이 되도록 안쪽 상자에 줌 */
-  .wx-in { position: relative; height: 100%; display: flex; flex-direction: column; padding: 7cqmin; }
+  .wx-in { position: relative; z-index: 1; height: 100%; display: flex; flex-direction: column; padding: 7cqmin; }
   .wx-top { display: flex; justify-content: space-between; align-items: flex-start; }
   .wx-place { font-size: 6.5cqmin; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60cqw; }
   .wx-arrow { font-size: 4.5cqmin; }
@@ -318,6 +340,7 @@
       <div class="row"><span class="grow" id="locNow"></span><button id="btnGps">GPS로 찾기</button></div>
       <div class="row"><input id="cityQ" class="grow" placeholder="도시 이름으로 지정 (예: 부산)"><button id="btnCity">검색</button></div>
       <div id="cityResults"></div>
+      <div class="row"><label class="grow" for="optWxAnim">날씨 배경 움직임<br><small class="muted">비·눈이 내리고 번개가 치는 모습을 보여 줘요. 끄면 멈춘 그림이 돼요</small></label><input type="checkbox" id="optWxAnim"></div>
     </div>
 
     <div class="sec" id="secEvents"><h3>일정</h3>
@@ -352,7 +375,7 @@
   const inApp = /\bStandbyApp\//.test(navigator.userAgent);
   document.body.classList.toggle('in-app', inApp);
 
-  const settings = Object.assign({ h24: false, night: 'auto', autoFull: true }, store.get('settings', {}));
+  const settings = Object.assign({ h24: false, night: 'auto', autoFull: true, wxAnim: true }, store.get('settings', {}));
   let events = store.get('events', []);
   let locPref = store.get('loc', { mode: 'gps' });
   const state = { pos: store.get('pos', null), wx: null };
@@ -830,6 +853,7 @@
     $('#optH24').checked = settings.h24;
     $('#optAutoFull').checked = settings.autoFull;
     $('#optNight').value = settings.night;
+    $('#optWxAnim').checked = settings.wxAnim;
     $('#locNow').textContent = (locPref.mode === 'manual' ? '지정한 도시: ' : 'GPS 현재 위치: ') + (state.pos?.name || '찾는 중…');
     $('#btnFull').textContent = document.fullscreenElement ? '전체화면 끄기' : '전체화면';
     if (!$('#evDate').value) $('#evDate').value = dayKey(new Date());
@@ -854,10 +878,12 @@
     store.set('settings', settings);
     lastSec = lastMin = -1;
     renderWeather(); renderEvents(); updateNight();
+    document.body.classList.toggle('wx-still', !settings.wxAnim);
   }
   $('#optH24').addEventListener('change', e => { settings.h24 = e.target.checked; saveSettings(); });
   $('#optAutoFull').addEventListener('change', e => { settings.autoFull = e.target.checked; saveSettings(); });
   $('#optNight').addEventListener('change', e => { settings.night = e.target.value; saveSettings(); });
+  $('#optWxAnim').addEventListener('change', e => { settings.wxAnim = e.target.checked; saveSettings(); });
 
   $('#btnGps').addEventListener('click', () => {
     locPref = { mode: 'gps' }; store.set('loc', locPref);
@@ -918,6 +944,10 @@
   const cachedWx = store.get('wx', null);
   if (cachedWx && Date.now() - cachedWx.at < 3 * 3600e3) state.wx = cachedWx.data;
   applyLayout(); applyMode();
+  document.body.classList.toggle('wx-still', !settings.wxAnim);
+  // 날씨 배경은 화면에 실제로 보이는 위젯만 움직임 (다른 위젯 차례이거나 큰 시계 화면이면 멈춤 → 배터리 절약)
+  const wxSeen = new IntersectionObserver(list => list.forEach(e => e.target.toggleAttribute('data-vis', e.isIntersecting)), { threshold: 0.3 });
+  $$('[data-r="weather"]').forEach(el => wxSeen.observe(el));
   renderCalendar(); renderEvents(); renderWeather(); renderPlace(); updateNight();
   requestAnimationFrame(() => { showPage(); stacks.forEach(snapStack); renderMap(); });
   requestAnimationFrame(frame);
