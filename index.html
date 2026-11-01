@@ -266,11 +266,13 @@
   .wd-p { font-size: 11.5px; font-weight: 600; color: #7fd0ff; white-space: nowrap; }
   .wd-p.zero { color: rgba(255,255,255,.35); font-weight: 400; }
   .wd-mm { font-size: 10.5px; color: rgba(127,208,255,.75); min-height: 1.3em; }
-  .wd-day { display: grid; grid-template-columns: 46px 26px 52px 30px 1fr 30px; align-items: center; gap: 8px; padding: 4px 12px; font-family: var(--num); }
-  .wd-day + .wd-day { border-top: 1px solid rgba(255,255,255,.07); }
+  .wd-day { display: grid; grid-template-columns: 46px 1fr 1fr 30px 30px; align-items: center; gap: 8px; padding: 4px 12px; font-family: var(--num); }
+  .wd-day + .wd-day:not(.wd-dhead + .wd-day) { border-top: 1px solid rgba(255,255,255,.07); }
   .wd-day .lo { color: var(--dim); text-align: right; }
-  .wd-bar { height: 5px; border-radius: 3px; background: rgba(255,255,255,.12); position: relative; }
-  .wd-bar i { position: absolute; top: 0; bottom: 0; border-radius: 3px; background: linear-gradient(90deg, #5ac8fa, #ffd60a, #ff9f0a); }
+  .wd-dhead { font-size: 11px; color: var(--dim); padding-top: 0; padding-bottom: 0; }
+  .wd-dhead span:nth-child(2), .wd-dhead span:nth-child(3) { text-align: center; }
+  .wd-half { display: flex; align-items: center; justify-content: center; gap: 4px; }
+  .wd-half.past { opacity: .4; }
   .wd-src { font-size: 11px; color: rgba(255,255,255,.35); margin: 10px 2px 0; }
 
   /* ── 지도(위치) ── */
@@ -898,14 +900,27 @@
       return `<div><div class="wd-p${p ? '' : ' zero'}">${DROP}${p}%</div><div class="wd-mm">${mm >= 0.1 ? mm.toFixed(1) + 'mm' : ''}</div></div>`;
     }).join('');
 
-    // 7일: 최저~최고 막대는 일주일 전체 온도 범위 안에서의 위치
-    const wLo = Math.min(...d.temperature_2m_min), wHi = Math.max(...d.temperature_2m_max), span = (wHi - wLo) || 1;
-    const days = d.time.map((t, k) => {
-      const dt = new Date(t + 'T00:00'), mn = d.temperature_2m_min[k], mx = d.temperature_2m_max[k], p = d.precipitation_probability_max[k] ?? 0;
-      return `<div class="wd-day"><span>${k === 0 ? '오늘' : WD[dt.getDay()] + '요일'}</span><span class="wd-i">${wx(d.weather_code[k], true).icon}</span>
-        <span class="wd-p${p ? '' : ' zero'}">${DROP}${p}%</span><span class="lo">${r0(mn)}°</span>
-        <span class="wd-bar"><i style="left:${((mn - wLo) / span * 100).toFixed(1)}%;right:${((wHi - mx) / span * 100).toFixed(1)}%"></i></span><span>${r0(mx)}°</span></div>`;
-    }).join('');
+    // 7일: 오전(0~11시)·오후(12~23시)로 나눠 비가 언제 오는지 보여 줌
+    // 대표 날씨는 비·눈이 2시간 이상이면 그중 가장 센 것, 아니면 가장 오래 이어지는 날씨 / 확률은 그 반나절의 최고값
+    const half = (date, from, k) => {
+      const ns = [];
+      j.hourly.time.forEach((t, n) => { const h = +t.slice(11, 13); if (t.startsWith(date) && h >= from && h < from + 12) ns.push(n); });
+      let code = d.weather_code[k], p = d.precipitation_probability_max[k] ?? 0;
+      if (ns.length) {
+        const codes = ns.map(n => j.hourly.weather_code[n]), wet = codes.filter(c => c >= 51), cnt = {};
+        codes.forEach(c => cnt[c] = (cnt[c] || 0) + 1);
+        code = wet.length >= 2 ? Math.max(...wet) : +Object.keys(cnt).reduce((a, b) => cnt[b] > cnt[a] ? b : a);
+        p = Math.max(...ns.map(n => j.hourly.precipitation_probability[n] ?? 0));
+      }
+      const past = k === 0 && from === 0 && new Date().getHours() >= 12; // 오늘 오후가 되면 지난 오전은 흐리게
+      return `<span class="wd-half${past ? ' past' : ''}"><span class="wd-i">${wx(code, true).icon}</span><span class="wd-p${p ? '' : ' zero'}">${DROP}${p}%</span></span>`;
+    };
+    const days = `<div class="wd-day wd-dhead"><span></span><span>오전</span><span>오후</span><span class="lo">최저</span><span class="lo">최고</span></div>`
+      + d.time.map((t, k) => {
+        const dt = new Date(t + 'T00:00');
+        return `<div class="wd-day"><span>${k === 0 ? '오늘' : WD[dt.getDay()] + '요일'}</span>${half(t, 0, k)}${half(t, 12, k)}
+          <span class="lo">${r0(d.temperature_2m_min[k])}°</span><span>${r0(d.temperature_2m_max[k])}°</span></div>`;
+      }).join('');
 
     // 보는 도중 새 날씨가 와도 스크롤 위치는 그대로
     const body = $('#wdBody'), sy = body.scrollTop, sx = $('.wd-hours', body)?.scrollLeft || 0;
