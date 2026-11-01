@@ -206,6 +206,10 @@
   .hr small { font-size: 4.8cqmin; color: rgba(255,255,255,.8); }
   .hr span { font-size: 7cqmin; }
   .hr b { font-size: 5.6cqmin; font-weight: 600; }
+  /* 온도 아래 강수확률: 비 올 확률이 있으면 하늘색, 0%면 흐리게 */
+  .hr i { font-style: normal; font-size: 4.6cqmin; font-weight: 600; color: #7fd0ff; }
+  .hr i.zero { color: rgba(255,255,255,.4); font-weight: 400; }
+  .drop { width: .72em; height: 1em; fill: currentColor; vertical-align: -.12em; margin-right: .1em; }
   .wx-msg { margin: auto; font-size: 6cqmin; color: var(--dim); text-align: center; }
   /* 납작한 칸: 시간별 예보를 오른쪽으로, 글씨는 높이 기준으로 키움 (위의 기본 규칙보다 뒤에 있어야 적용됨) */
   @container (min-aspect-ratio: 3/2) {
@@ -215,11 +219,54 @@
     .wx-hours { grid-column: 2; grid-row: 1 / 5; align-self: center; margin: 0; }
     .wx-place { font-size: 9cqh; } .wx-temp { font-size: 34cqh; } .wx-ic { font-size: 17cqh; }
     .wx-desc { font-size: 8.5cqh; } .wx-hl { font-size: 7.5cqh; }
-    .hr small { font-size: 7cqh; } .hr span { font-size: 11cqh; } .hr b { font-size: 8.5cqh; }
+    .hr small { font-size: 7cqh; } .hr span { font-size: 11cqh; } .hr b { font-size: 8.5cqh; } .hr i { font-size: 6.5cqh; }
     .wx-hours { gap: 3cqh; min-width: 0; overflow: hidden; }
   }
   /* 덜 납작한 칸은 오른쪽 자리가 좁아서 시간별 예보를 3개만 */
   @container (min-aspect-ratio: 3/2) and (max-aspect-ratio: 19/10) { .hr:nth-child(n+4) { display: none; } }
+
+  /* ── 날씨 자세히: 날씨 위젯을 누르면 오른쪽에서 밀려 들어옴 (닫혀 있을 땐 그리지 않음) ── */
+  #wxd { position: absolute; inset: 0; z-index: 3; background: #0b0d12; display: flex; flex-direction: column; font-size: 14px;
+    padding: max(2vmin, env(safe-area-inset-top)) max(4vmin, env(safe-area-inset-right)) 0 max(4vmin, env(safe-area-inset-left));
+    transform: translateX(100%); visibility: hidden; transition: transform .35s ease, visibility 0s .35s; }
+  #wxd.open { transform: none; visibility: visible; transition: transform .35s ease; }
+  body.wxd-open #gear { display: none; }
+  .wd-head { display: flex; align-items: center; gap: 14px; padding: 4px 0 8px; flex: none; }
+  .wd-back { font: 600 15px var(--txt); color: #4da3ff; background: none; border: 0; padding: 6px 2px; cursor: pointer; flex: none; }
+  .wd-now { display: flex; align-items: baseline; gap: 10px; min-width: 0; white-space: nowrap; overflow: hidden; }
+  .wd-now b { font: 300 30px var(--num); line-height: 1; }
+  .wd-now span { font-size: 15px; font-weight: 600; }
+  .wd-now small { font-size: 13px; color: var(--dim); overflow: hidden; text-overflow: ellipsis; }
+  .wd-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; padding-bottom: max(3vmin, env(safe-area-inset-bottom)); }
+  .wd-body::-webkit-scrollbar, .wd-hours::-webkit-scrollbar { display: none; }
+  /* 정보 칸 8개: 보통 4개씩 두 줄, 아주 넓으면 한 줄, 좁은 세로 화면이면 2개씩 */
+  .wd-tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  @media (min-width: 1150px) { .wd-tiles { grid-template-columns: repeat(8, 1fr); } }
+  @media (max-width: 520px) { .wd-tiles { grid-template-columns: repeat(2, 1fr); } }
+  .wd-tile { background: #1a1d24; border-radius: 12px; padding: 7px 11px 8px; min-width: 0; }
+  .wd-tile > small { display: block; font-size: 11.5px; color: var(--dim); font-weight: 600; }
+  .wd-tile b { display: block; font: 600 19px var(--num); margin-top: 1px; white-space: nowrap; }
+  .wd-tile b small { font-size: 12px; font-weight: 500; margin-left: 2px; color: var(--dim); }
+  .wd-tile em { display: block; font-style: normal; font-size: 11.5px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .wd-arrow { display: inline-block; margin-right: 4px; color: #4da3ff; }
+  .wd-sec { margin-top: 10px; background: #1a1d24; border-radius: 12px; padding: 8px 0 6px; }
+  .wd-sec h4 { margin: 0 12px 4px; font-size: 11.5px; color: var(--dim); font-weight: 600; }
+  .wd-hours { overflow-x: auto; scrollbar-width: none; overscroll-behavior: contain; font-family: var(--num); }
+  .wd-hrow { display: flex; width: max-content; }
+  .wd-hrow > div { flex: 0 0 52px; text-align: center; }
+  .wd-hours svg { display: block; }
+  .wd-hours text { font-size: 12px; font-weight: 600; fill: #fff; text-anchor: middle; }
+  .wd-t { font-size: 12px; color: var(--dim); } .wd-t.mid { color: #fff; font-weight: 700; }
+  .wd-i { font-size: 19px; line-height: 1.45; }
+  .wd-p { font-size: 11.5px; font-weight: 600; color: #7fd0ff; white-space: nowrap; }
+  .wd-p.zero { color: rgba(255,255,255,.35); font-weight: 400; }
+  .wd-mm { font-size: 10.5px; color: rgba(127,208,255,.75); min-height: 1.3em; }
+  .wd-day { display: grid; grid-template-columns: 46px 26px 52px 30px 1fr 30px; align-items: center; gap: 8px; padding: 4px 12px; font-family: var(--num); }
+  .wd-day + .wd-day { border-top: 1px solid rgba(255,255,255,.07); }
+  .wd-day .lo { color: var(--dim); text-align: right; }
+  .wd-bar { height: 5px; border-radius: 3px; background: rgba(255,255,255,.12); position: relative; }
+  .wd-bar i { position: absolute; top: 0; bottom: 0; border-radius: 3px; background: linear-gradient(90deg, #5ac8fa, #ffd60a, #ff9f0a); }
+  .wd-src { font-size: 11px; color: rgba(255,255,255,.35); margin: 10px 2px 0; }
 
   /* ── 지도(위치) ── */
   .w-map { background: #1b1d22; }
@@ -309,6 +356,10 @@
       <div class="stack" data-stack="clock" data-default="0"></div>
     </section>
   </div>
+  <section id="wxd" aria-label="날씨 자세히">
+    <div class="wd-head"><button class="wd-back">‹ 닫기</button><div class="wd-now" id="wdNow"></div></div>
+    <div class="wd-body" id="wdBody"></div>
+  </section>
 </div>
 
 <button id="gear" aria-label="설정">
@@ -648,6 +699,8 @@
     80: ['소나기', '🌦️', '🌧️'], 81: ['소나기', '🌧️'], 82: ['강한 소나기', '🌧️'], 85: ['눈 소나기', '🌨️'], 86: ['눈 소나기', '🌨️'],
     95: ['뇌우', '⛈️'], 96: ['우박 동반 뇌우', '⛈️'], 99: ['우박 동반 뇌우', '⛈️'],
   };
+  // 강수확률 앞에 붙는 작은 물방울 (글자색을 따라감)
+  const DROP = '<svg class="drop" viewBox="0 0 10 14" aria-hidden="true"><path d="M5 .5C3.6 2.6 1 5.8 1 8.9a4 4 0 0 0 8 0C9 5.8 6.4 2.6 5 .5z"/></svg>';
   const wx = (code, day) => { const w = WX[code] || ['-', '🌡️']; return { label: w[0], icon: (!day && w[2]) || w[1] }; };
   const wxKind = code => code >= 95 ? 'storm' : (code >= 71 && code <= 77) || code === 85 || code === 86 ? 'snow'
     : code >= 51 ? 'rain' : code >= 45 ? 'fog' : code >= 3 ? 'cloud' : 'clear';
@@ -671,8 +724,11 @@
     const p = state.pos;
     if (!p) return;
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${p.lat.toFixed(4)}&longitude=${p.lon.toFixed(4)}`
-      + '&current=temperature_2m,weather_code,is_day&hourly=temperature_2m,weather_code,is_day'
-      + '&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=auto&forecast_days=2';
+      + '&current=temperature_2m,weather_code,is_day,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m,uv_index'
+      + '&hourly=temperature_2m,weather_code,is_day,precipitation_probability,precipitation'
+      + '&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_sum,precipitation_probability_max,uv_index_max'
+      + '&wind_speed_unit=ms&timezone=auto&forecast_days=7';
+    loadAir(p);
     try {
       const r = await fetch(url);
       if (!r.ok) throw new Error(r.status);
@@ -698,7 +754,9 @@
       const n = i + k, h = +j.hourly.time[n].slice(11, 13);
       const label = k === 0 ? '지금' : `${settings.h24 ? h : h % 12 || 12}시`;
       const temp = Math.round(k === 0 ? c.temperature_2m : j.hourly.temperature_2m[n]);
-      hours += `<div class="hr"><small>${label}</small><span>${wx(j.hourly.weather_code[n], !!j.hourly.is_day[n]).icon}</span><b>${temp}°</b></div>`;
+      const pop = j.hourly.precipitation_probability?.[n]; // 강수확률(%). 예전에 저장된 날씨에는 없을 수 있음
+      hours += `<div class="hr"><small>${label}</small><span>${wx(j.hourly.weather_code[n], !!j.hourly.is_day[n]).icon}</span><b>${temp}°</b>`
+        + (pop == null ? '' : `<i class="${pop ? '' : 'zero'}">${DROP}${pop}%</i>`) + '</div>';
     }
     const html = `<div class="wx-in"><div class="wx-top"><div><div class="wx-place">${esc(state.pos?.name || '')} <span class="wx-arrow">➤</span></div>
       <div class="wx-temp">${Math.round(c.temperature_2m)}°</div></div><div class="wx-ic">${now.icon}</div></div>
@@ -708,6 +766,113 @@
     setGlow(new Date()); // 일출·일몰을 받자마자 빛나는 시계 색도 맞춤
     fill('sunrise', '일출 ' + fmtClock(j.daily.sunrise[0].slice(11, 16)));
     fill('sunset', '일몰 ' + fmtClock(j.daily.sunset[0].slice(11, 16)));
+    renderWxd();
+  }
+
+  // ── 날씨 자세히: 날씨 위젯을 누르면 오른쪽에서 들어오고, 1분 동안 손대지 않으면 스탠바이로 돌아감 ──
+  // 미세먼지는 같은 Open-Meteo의 대기질 서비스에서 받음 (못 받아도 다른 정보는 그대로 보임)
+  async function loadAir(p) {
+    try {
+      const r = await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${p.lat.toFixed(4)}&longitude=${p.lon.toFixed(4)}&current=pm10,pm2_5&timezone=auto`);
+      if (!r.ok) throw new Error(r.status);
+      state.air = (await r.json()).current;
+      renderWxd();
+    } catch {}
+  }
+  // 우리나라(환경부) 기준 등급: [좋음 상한, 보통 상한, 나쁨 상한]
+  const AIR_STEP = { pm10: [30, 80, 150], pm2_5: [15, 35, 75] };
+  const AIR_GRADE = [['좋음', '#4da3ff'], ['보통', '#30d158'], ['나쁨', '#ff9f0a'], ['매우 나쁨', '#ff453a']];
+  const airGrade = (k, v) => { const i = AIR_STEP[k].findIndex(x => v <= x); return AIR_GRADE[i < 0 ? 3 : i]; };
+  const WIND16 = ['북', '북북동', '북동', '동북동', '동', '동남동', '남동', '남남동', '남', '남남서', '남서', '서남서', '서', '서북서', '북서', '북북서'];
+  const windWord = s => s < 4 ? '약한 바람' : s < 9 ? '약간 강한 바람' : s < 14 ? '강한 바람' : '매우 강한 바람';
+  const uvWord = u => u < 3 ? '낮음' : u < 6 ? '보통' : u < 8 ? '높음' : u < 11 ? '매우 높음' : '위험';
+  const wxd = $('#wxd');
+  let wxdT;
+  const wxdOpen = () => wxd.classList.contains('open');
+  function openWxd() {
+    if (!state.wx) return;
+    // 업데이트 전에 저장된 날씨에는 자세한 정보가 없음 → 새로 받아 옴
+    if (!state.wx.daily?.precipitation_sum) { toast('자세한 날씨를 불러오는 중이에요. 잠시 후 다시 눌러 주세요'); loadWeather(); return; }
+    wxd.classList.add('open');
+    document.body.classList.add('wxd-open');
+    $('#wdBody').scrollTop = 0;
+    renderWxd();
+    wxdIdle();
+  }
+  function closeWxd() {
+    wxd.classList.remove('open');
+    document.body.classList.remove('wxd-open');
+    clearTimeout(wxdT);
+  }
+  const wxdIdle = () => { clearTimeout(wxdT); wxdT = setTimeout(closeWxd, 60e3); };
+  // 앱의 뒤로가기 버튼: 상세 화면이 열려 있으면 닫기만 하고 true (앱은 스탠바이를 닫지 않음)
+  window.standbyBack = () => { if (!wxdOpen()) return false; closeWxd(); return true; };
+  $('.wd-back').addEventListener('click', closeWxd);
+  ['pointerdown', 'scroll', 'wheel'].forEach(t => wxd.addEventListener(t, () => wxdOpen() && wxdIdle(), { capture: true, passive: true }));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeWxd(); });
+  document.addEventListener('click', e => {
+    if (e.target.closest('[data-r="weather"]') && sheet.hidden && !document.body.classList.contains('editing')) openWxd();
+  });
+
+  function renderWxd() {
+    const j = state.wx;
+    if (!j || !wxdOpen()) return;
+    const c = j.current, d = j.daily, now = wx(c.weather_code, !!c.is_day), r0 = v => Math.round(v);
+    $('#wdNow').innerHTML = `<b>${r0(c.temperature_2m)}°</b><span>${now.icon} ${now.label}</span>
+      <small>${esc(state.pos?.name || '')} · 최고 ${r0(d.temperature_2m_max[0])}° 최저 ${r0(d.temperature_2m_min[0])}°</small>`;
+
+    const tile = (t, b, em = '', color = '') => `<div class="wd-tile"><small>${t}</small><b${color ? ` style="color:${color}"` : ''}>${b}</b><em>${em}</em></div>`;
+    const dir = c.wind_direction_10m ?? 0, a = state.air;
+    const air = k => {
+      if (a?.[k] == null) return tile(k === 'pm10' ? '미세먼지' : '초미세먼지', '–', '정보 없음');
+      const [g, col] = airGrade(k, a[k]);
+      return tile(k === 'pm10' ? '미세먼지' : '초미세먼지', g, `${r0(a[k])}㎍/㎥`, col);
+    };
+    const tiles = [
+      tile('체감온도', `${r0(c.apparent_temperature)}°`, `실제 ${r0(c.temperature_2m)}°`),
+      tile('습도', `${r0(c.relative_humidity_2m)}%`),
+      tile('바람', `<span class="wd-arrow" style="transform:rotate(${dir + 180}deg)">↑</span>${c.wind_speed_10m.toFixed(1)}<small>m/s</small>`,
+        `${WIND16[Math.round(dir / 22.5) % 16]}풍 · 돌풍 ${r0(c.wind_gusts_10m)}m/s`),
+      tile('오늘 강수량', `${(d.precipitation_sum[0] ?? 0).toFixed(1)}<small>mm</small>`, `${DROP}비 올 확률 ${d.precipitation_probability_max[0] ?? 0}%`),
+      air('pm10'), air('pm2_5'),
+      tile('자외선', `${r0(c.uv_index ?? 0)} ${uvWord(c.uv_index ?? 0)}`, `오늘 최고 ${r0(d.uv_index_max[0] ?? 0)} ${uvWord(d.uv_index_max[0] ?? 0)}`),
+      tile('일출 · 일몰', fmtClock(d.sunrise[0].slice(11, 16)), '일몰 ' + fmtClock(d.sunset[0].slice(11, 16))),
+    ].join('');
+
+    // 24시간: 시간·아이콘 / 온도 꺾은선 / 강수확률·강수량
+    let i = Math.max(0, j.hourly.time.findIndex(t => t.slice(0, 13) === c.time.slice(0, 13)));
+    const H = [];
+    for (let k = 0; k < 24 && i + k < j.hourly.time.length; k++) H.push(i + k);
+    const CW = 52, temps = H.map((n, k) => k === 0 ? c.temperature_2m : j.hourly.temperature_2m[n]);
+    const hi = Math.max(...temps), lo = Math.min(...temps), y = t => 20 + (hi - t) / ((hi - lo) || 1) * 22;
+    const pts = temps.map((t, k) => `${k * CW + CW / 2},${y(t).toFixed(1)}`).join(' ');
+    const svg = `<svg width="${H.length * CW}" height="50"><polyline points="${pts}" fill="none" stroke="rgba(255,214,10,.75)" stroke-width="2" stroke-linejoin="round"/>`
+      + temps.map((t, k) => `<circle cx="${k * CW + CW / 2}" cy="${y(t).toFixed(1)}" r="2.6" fill="#ffd60a"/><text x="${k * CW + CW / 2}" y="${(y(t) - 7).toFixed(1)}">${r0(t)}°</text>`).join('') + '</svg>';
+    const top = H.map((n, k) => {
+      const h = +j.hourly.time[n].slice(11, 13);
+      return `<div><div class="wd-t${h === 0 ? ' mid' : ''}">${k === 0 ? '지금' : h === 0 ? '내일' : `${settings.h24 ? h : h % 12 || 12}시`}</div><div class="wd-i">${wx(j.hourly.weather_code[n], !!j.hourly.is_day[n]).icon}</div></div>`;
+    }).join('');
+    const bottom = H.map(n => {
+      const p = j.hourly.precipitation_probability[n] ?? 0, mm = j.hourly.precipitation[n] ?? 0;
+      return `<div><div class="wd-p${p ? '' : ' zero'}">${DROP}${p}%</div><div class="wd-mm">${mm >= 0.1 ? mm.toFixed(1) + 'mm' : ''}</div></div>`;
+    }).join('');
+
+    // 7일: 최저~최고 막대는 일주일 전체 온도 범위 안에서의 위치
+    const wLo = Math.min(...d.temperature_2m_min), wHi = Math.max(...d.temperature_2m_max), span = (wHi - wLo) || 1;
+    const days = d.time.map((t, k) => {
+      const dt = new Date(t + 'T00:00'), mn = d.temperature_2m_min[k], mx = d.temperature_2m_max[k], p = d.precipitation_probability_max[k] ?? 0;
+      return `<div class="wd-day"><span>${k === 0 ? '오늘' : WD[dt.getDay()] + '요일'}</span><span class="wd-i">${wx(d.weather_code[k], true).icon}</span>
+        <span class="wd-p${p ? '' : ' zero'}">${DROP}${p}%</span><span class="lo">${r0(mn)}°</span>
+        <span class="wd-bar"><i style="left:${((mn - wLo) / span * 100).toFixed(1)}%;right:${((wHi - mx) / span * 100).toFixed(1)}%"></i></span><span>${r0(mx)}°</span></div>`;
+    }).join('');
+
+    // 보는 도중 새 날씨가 와도 스크롤 위치는 그대로
+    const body = $('#wdBody'), sy = body.scrollTop, sx = $('.wd-hours', body)?.scrollLeft || 0;
+    body.innerHTML = `<div class="wd-tiles">${tiles}</div>
+      <div class="wd-sec"><h4>시간별 예보 (24시간)</h4><div class="wd-hours"><div class="wd-hrow">${top}</div>${svg}<div class="wd-hrow">${bottom}</div></div></div>
+      <div class="wd-sec"><h4>7일 예보</h4>${days}</div>
+      <p class="wd-src">날씨·미세먼지 Open-Meteo · 미세먼지 등급은 환경부 기준 · 1분 동안 손대지 않으면 스탠바이로 돌아가요</p>`;
+    body.scrollTop = sy; $('.wd-hours', body).scrollLeft = sx;
   }
 
   // ── 위치 · 지도 ──
