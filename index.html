@@ -765,20 +765,27 @@
   async function loadWeather() {
     const p = state.pos;
     if (!p) return;
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${p.lat.toFixed(4)}&longitude=${p.lon.toFixed(4)}`
+    const q = `/v1/forecast?latitude=${p.lat.toFixed(4)}&longitude=${p.lon.toFixed(4)}`
       + '&current=temperature_2m,weather_code,is_day,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m,uv_index'
       + '&hourly=temperature_2m,weather_code,is_day,precipitation_probability,precipitation'
       + '&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_sum,precipitation_probability_max,uv_index_max'
       + '&wind_speed_unit=ms&timezone=auto&forecast_days=7';
     loadAir(p);
-    try {
-      const r = await fetch(url);
-      if (!r.ok) throw new Error(r.status);
-      state.wx = await r.json();
-      store.set('wx', { at: Date.now(), data: state.wx });
-      renderWeather();
-    } catch {
-      if (!state.wx) renderWeather('날씨를 불러오지 못했어요<br>인터넷 연결을 확인해 주세요');
+    // 기본 서버가 멈추면 같은 Open-Meteo의 예비 서버(같은 형식의 최신 예보)로 다시 시도
+    for (const host of ['api.open-meteo.com', 'previous-runs-api.open-meteo.com']) {
+      try {
+        const r = await fetch('https://' + host + q, { signal: AbortSignal.timeout(10e3) });
+        if (!r.ok) throw new Error(r.status);
+        state.wx = await r.json();
+        store.set('wx', { at: Date.now(), data: state.wx });
+        renderWeather();
+        return;
+      } catch {}
+    }
+    if (!state.wx) {
+      renderWeather('날씨를 불러오지 못했어요<br>인터넷 연결을 확인해 주세요');
+      clearTimeout(loadWeather.retry);
+      loadWeather.retry = setTimeout(loadWeather, 60e3); // 15분을 기다리지 않고 1분 뒤 다시 시도
     }
   }
   function renderWeather(msg) {
